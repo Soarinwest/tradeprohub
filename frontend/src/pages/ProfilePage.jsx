@@ -9,9 +9,17 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      const { data } = await API.get('my-profile/', config);
-      setProfile(data);
+      try {
+        const config = { headers: { Authorization: `Bearer ${token}` } };
+        const { data } = await API.get('my-profile/', config);
+        setProfile(data);
+      } catch (err) {
+        if (err.response?.status === 404) {
+          window.location.href = '/create-profile';
+        } else {
+          console.error(err);
+        }
+      }
     };
     if (token) fetchProfile();
   }, [token]);
@@ -23,10 +31,16 @@ export default function ProfilePage() {
         'Content-Type': 'multipart/form-data',
       },
     };
-    await API.put('my-profile/', updatedProfile, config);
-    alert('Profile updated!');
+    try {
+      await API.put('my-profile/', updatedProfile, config);
+      alert('Profile updated!');
+    } catch (err) {
+      console.error(err);
+      alert('Update failed.');
+    }
   };
-  if (!profile) return <p>Loading...</p>;
+
+  if (!token || !profile) return <p>Loading...</p>;
 
   return (
     <div className="max-w-xl mx-auto mt-10">
@@ -35,4 +49,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
