@@ -10,18 +10,22 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchProfile = async () => {
       const config = { headers: { Authorization: `Bearer ${token}` } };
-      const { data } = await API.get('profile/1/', config); // TODO: Replace '1' with dynamic user id
+      const { data } = await API.get('my-profile/', config);
       setProfile(data);
     };
     if (token) fetchProfile();
   }, [token]);
 
   const handleSave = async (updatedProfile) => {
-    const config = { headers: { Authorization: `Bearer ${token}` } };
-    await API.put('profile/1/', updatedProfile, config); // Same: use dynamic id later
+    const config = {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+    };
+    await API.put('my-profile/', updatedProfile, config);
     alert('Profile updated!');
   };
-  
   if (!profile) return <p>Loading...</p>;
 
   return (
