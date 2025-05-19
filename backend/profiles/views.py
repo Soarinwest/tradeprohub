@@ -45,23 +45,18 @@ class ProfileCreateView(generics.CreateAPIView):
 
 
 # ─── Profile Retrieve/Update ─────────────────────────────────────────────────
-
 class MyProfileView(generics.RetrieveUpdateAPIView):
     """
-    GET  /api/my-profile/    → fetch own profile
-    PUT  /api/my-profile/    → update own profile
-    PATCH/… same
+    GET  /api/my-profile/ → retrieve your profile (404 if none)
+    PUT  /api/my-profile/ → update your profile
     """
     queryset = TradespersonProfile.objects.all()
     serializer_class = TradespersonProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
-    # Provide DRF a queryset so get_queryset() no longer breaks
 
-
-def get_object(self):
-# If no profile exists, return 404 instead of crashing
-    try:
-        return self.request.user.tradespersonprofile
-    except TradespersonProfile.DoesNotExist:
-        from rest_framework.exceptions import NotFound
-        raise NotFound(detail="No profile found for this user.")
+    def get_object(self):
+        try:
+            return self.request.user.tradespersonprofile
+        except TradespersonProfile.DoesNotExist:
+            from rest_framework.exceptions import NotFound
+            raise NotFound(detail="No profile found for this user.")
