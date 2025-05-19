@@ -13,8 +13,9 @@ export default function CreateProfilePage() {
           'Content-Type': 'multipart/form-data',
         },
       };
+      // POST to the profile-create endpoint:
       await API.post('profile/', formData, config);
-      alert('Profile created!');
+      alert('Profile created! Redirecting...');
       window.location.href = '/profile';
     } catch (err) {
       console.error(err);

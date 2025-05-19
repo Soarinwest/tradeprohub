@@ -52,8 +52,16 @@ class MyProfileView(generics.RetrieveUpdateAPIView):
     PUT  /api/my-profile/    → update own profile
     PATCH/… same
     """
+    queryset = TradespersonProfile.objects.all()
     serializer_class = TradespersonProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
+    # Provide DRF a queryset so get_queryset() no longer breaks
 
-    def get_object(self):
+
+def get_object(self):
+# If no profile exists, return 404 instead of crashing
+    try:
         return self.request.user.tradespersonprofile
+    except TradespersonProfile.DoesNotExist:
+        from rest_framework.exceptions import NotFound
+        raise NotFound(detail="No profile found for this user.")

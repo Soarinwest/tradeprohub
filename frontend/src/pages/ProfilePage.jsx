@@ -1,46 +1,53 @@
+// frontend/src/pages/ProfilePage.jsx
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import API from '../api/api';
 import ProfileForm from '../components/ProfileForm';
 import { useAuth } from '../auth/useAuth';
 
 export default function ProfilePage() {
   const { token } = useAuth();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
 
   useEffect(() => {
+    if (!token) {
+      navigate('/');
+      return;
+    }
     const fetchProfile = async () => {
       try {
-        const config = { headers: { Authorization: `Bearer ${token}` } };
-        const { data } = await API.get('my-profile/', config);
+        const { data } = await API.get('my-profile/');
         setProfile(data);
       } catch (err) {
-        if (err.response?.status === 404) {
-          window.location.href = '/create-profile';
+        const status = err.response?.status;
+        if (status === 404) {
+          navigate('/create-profile');
+        } else if (status === 401) {
+          navigate('/');
         } else {
           console.error(err);
         }
       }
     };
-    if (token) fetchProfile();
-  }, [token]);
+    fetchProfile();
+  }, [token, navigate]);
 
   const handleSave = async (updatedProfile) => {
-    const config = {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data',
-      },
-    };
     try {
-      await API.put('my-profile/', updatedProfile, config);
+      await API.put('my-profile/', updatedProfile);
       alert('Profile updated!');
     } catch (err) {
-      console.error(err);
-      alert('Update failed.');
+      if (err.response?.status === 401) {
+        navigate('/');
+      } else {
+        console.error(err);
+        alert('Update failed.');
+      }
     }
   };
 
-  if (!token || !profile) return <p>Loading...</p>;
+  if (!profile) return <p>Loading...</p>;
 
   return (
     <div className="max-w-xl mx-auto mt-10">
