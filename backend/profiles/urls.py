@@ -1,11 +1,17 @@
+# backend/profiles/urls.py
 from django.urls import path
-from .views import RegisterView, ProfileCreateView, MyProfileView
+from .views import (
+    RegisterView,
+    TokenObtainPairView,
+    TokenRefreshView,
+    EmployeeProfileCreateView,
+    EmployeeProfileDetailView,
+)
 
 urlpatterns = [
-    # User can sign up:
     path('register/', RegisterView.as_view(), name='register'),
-    # Create your profile (after signup):
-    path('profile/', ProfileCreateView.as_view(), name='profile-create'),
-    # Fetch & update your profile:
-    path('my-profile/', MyProfileView.as_view(), name='my-profile'),
+    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('employee-profile/', EmployeeProfileCreateView.as_view(), name='employee-profile-create'),
+    path('my-employee-profile/', EmployeeProfileDetailView.as_view(), name='my-employee-profile'),
 ]

@@ -14,7 +14,7 @@ export default function CreateProfilePage() {
         },
       };
       // POST to the profile-create endpoint:
-      await API.post('profile/', formData, config);
+      await API.post('employee-profile/', formData, config);
       alert('Profile created! Redirecting...');
       window.location.href = '/profile';
     } catch (err) {

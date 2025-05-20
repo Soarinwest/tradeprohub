@@ -17,7 +17,7 @@ export default function ProfilePage() {
     }
     const fetchProfile = async () => {
       try {
-        const { data } = await API.get('my-profile/');
+        const { data } = await API.get('my-employee-profile/');
         setProfile(data);
       } catch (err) {
         const status = err.response?.status;
@@ -35,7 +35,7 @@ export default function ProfilePage() {
 
   const handleSave = async (updatedProfile) => {
     try {
-      await API.put('my-profile/', updatedProfile);
+      await API.put('my-employee-profile/', updatedProfile);
       alert('Profile updated!');
     } catch (err) {
       if (err.response?.status === 401) {

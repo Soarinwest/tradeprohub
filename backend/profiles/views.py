@@ -1,62 +1,50 @@
+# backend/profiles/views.py
 from rest_framework import generics, permissions
-from rest_framework.exceptions import ValidationError
-from rest_framework.serializers import ModelSerializer
+from rest_framework.exceptions import NotFound
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.contrib.auth.models import User
-
-from .models import TradespersonProfile
-from .serializers import TradespersonProfileSerializer
-
-# ─── User Registration ───────────────────────────────────────────────────────
-
-class RegisterSerializer(ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['username', 'email', 'password']
-        extra_kwargs = {'password': {'write_only': True}}
-
-    def create(self, validated_data):
-        # Uses Django's create_user to hash password
-        return User.objects.create_user(**validated_data)
+from .models import EmployeeProfile
+from .serializers import (
+    EmployeeProfileSerializer,
+    RegisterSerializer,
+    BusinessSerializer,
+    LocationSerializer
+)
 
 class RegisterView(generics.CreateAPIView):
     """
     POST /api/register/
     """
+    # No authentication checks here
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
-    permission_classes = [permissions.AllowAny]
 
+# Token endpoints are included via URL patterns
 
-# ─── Profile Creation ────────────────────────────────────────────────────────
-
-class ProfileCreateView(generics.CreateAPIView):
+# Create EmployeeProfile (and nested Business)
+class EmployeeProfileCreateView(generics.CreateAPIView):
     """
-    POST /api/profile/
-    Creates a blank profile for the logged-in user.
+    POST /api/employee-profile/ -> create Business + EmployeeProfile for the authenticated user
     """
-    serializer_class = TradespersonProfileSerializer
+    serializer_class = EmployeeProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
-        user = self.request.user
-        if hasattr(user, 'tradespersonprofile'):
-            raise ValidationError("Profile already exists.")
-        serializer.save(user=user)
+        serializer.save()
 
-
-# ─── Profile Retrieve/Update ─────────────────────────────────────────────────
-class MyProfileView(generics.RetrieveUpdateAPIView):
+# Retrieve or update own EmployeeProfile
+class EmployeeProfileDetailView(generics.RetrieveUpdateAPIView):
     """
-    GET  /api/my-profile/ → retrieve your profile (404 if none)
-    PUT  /api/my-profile/ → update your profile
+    GET  /api/my-employee-profile/ -> returns logged-in user's EmployeeProfile
+    PUT  /api/my-employee-profile/ -> updates logged-in user's EmployeeProfile
     """
-    queryset = TradespersonProfile.objects.all()
-    serializer_class = TradespersonProfileSerializer
+    serializer_class = EmployeeProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
         try:
-            return self.request.user.tradespersonprofile
-        except TradespersonProfile.DoesNotExist:
-            from rest_framework.exceptions import NotFound
+            return self.request.user.employee_profile
+        except EmployeeProfile.DoesNotExist:
             raise NotFound(detail="No profile found for this user.")
