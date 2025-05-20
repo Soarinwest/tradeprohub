@@ -7,26 +7,22 @@ from .models import EmployeeProfile
 from .serializers import (
     EmployeeProfileSerializer,
     RegisterSerializer,
-    BusinessSerializer,
-    LocationSerializer
+    TokenObtainPairView as ObtainToken,
+    TokenRefreshView as RefreshToken
 )
 
 class RegisterView(generics.CreateAPIView):
     """
-    POST /api/register/
+    POST /api/register/ → create a new User
     """
-    # No authentication checks here
     authentication_classes = []
     permission_classes = [permissions.AllowAny]
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
 
-# Token endpoints are included via URL patterns
-
-# Create EmployeeProfile (and nested Business)
 class EmployeeProfileCreateView(generics.CreateAPIView):
     """
-    POST /api/employee-profile/ -> create Business + EmployeeProfile for the authenticated user
+    POST /api/employee-profile/ → create Business, Locations, and EmployeeProfile
     """
     serializer_class = EmployeeProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -34,11 +30,10 @@ class EmployeeProfileCreateView(generics.CreateAPIView):
     def perform_create(self, serializer):
         serializer.save()
 
-# Retrieve or update own EmployeeProfile
 class EmployeeProfileDetailView(generics.RetrieveUpdateAPIView):
     """
-    GET  /api/my-employee-profile/ -> returns logged-in user's EmployeeProfile
-    PUT  /api/my-employee-profile/ -> updates logged-in user's EmployeeProfile
+    GET /api/my-employee-profile/ → retrieve own profile
+    PUT /api/my-employee-profile/ → update own profile
     """
     serializer_class = EmployeeProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
