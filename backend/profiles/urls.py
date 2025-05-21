@@ -1,9 +1,15 @@
-# backend/backend/urls.py
-from django.contrib import admin
-from django.urls import path, include
+# backend/profiles/urls.py
+from django.urls import path
+from .views import (
+    RegisterView,
+    EmployeeProfileCreateView,
+    EmployeeProfileDetailView,
+)
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/', include('profiles.urls')),
+    # User registration
+    path('register/', RegisterView.as_view(), name='register'),
+    # Scalable: EmployeeProfile endpoints
+    path('employee-profile/', EmployeeProfileCreateView.as_view(), name='employee-profile-create'),
+    path('my-employee-profile/', EmployeeProfileDetailView.as_view(), name='my-employee-profile'),
 ]
-

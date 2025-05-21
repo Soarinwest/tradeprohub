@@ -7,8 +7,6 @@ from .models import EmployeeProfile
 from .serializers import (
     EmployeeProfileSerializer,
     RegisterSerializer,
-    TokenObtainPairView as ObtainToken,
-    TokenRefreshView as RefreshToken
 )
 
 class RegisterView(generics.CreateAPIView):
