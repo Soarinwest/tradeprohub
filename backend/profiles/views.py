@@ -1,17 +1,13 @@
-# File: backend/profiles/views.py
-# -------------------------------
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
-from rest_framework.decorators import api_view, permission_classes
 from .models import BusinessProfile
 from .serializers import BusinessProfileSerializer
 
-class BusinessProfileView(generics.RetrieveUpdateCreateAPIView):
+class BusinessProfileView(generics.RetrieveUpdateAPIView):
     """
     Business profile endpoint
     GET /api/profile/ - Get current user's business profile
     PUT /api/profile/ - Update current user's business profile
-    POST /api/profile/ - Create business profile (from wizard)
     """
     serializer_class = BusinessProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -73,31 +69,11 @@ class BusinessProfileView(generics.RetrieveUpdateCreateAPIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    def create(self, request, *args, **kwargs):
-        """Create/update profile from wizard submission"""
-        try:
-            # Get or create profile
-            instance = self.get_object()
-            
-            # Update with submitted data
-            serializer = self.get_serializer(instance, data=request.data, partial=True)
-            
-            if serializer.is_valid():
-                profile = serializer.save()
-                return Response({
-                    'success': True,
-                    'message': 'Profile created successfully',
-                    'profile': serializer.data
-                }, status=status.HTTP_201_CREATED)
-            else:
-                return Response({
-                    'success': False,
-                    'error': 'Validation failed',
-                    'details': serializer.errors
-                }, status=status.HTTP_400_BAD_REQUEST)
-                
-        except Exception as e:
-            return Response(
-                {'success': False, 'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    def put(self, request, *args, **kwargs):
+        """Handle PUT requests (same as update)"""
+        return self.update(request, *args, **kwargs)
+
+    def patch(self, request, *args, **kwargs):
+        """Handle PATCH requests (same as update)"""
+        return self.update(request, *args, **kwargs)
+        

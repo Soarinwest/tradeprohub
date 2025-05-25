@@ -19,17 +19,17 @@ class BusinessProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='business_profile')
     
     # Business Information
-    business_name = models.CharField(max_length=200)
-    business_phone = models.CharField(max_length=20)
-    business_email = models.EmailField()
+    business_name = models.CharField(max_length=200, blank=True)
+    business_phone = models.CharField(max_length=20, blank=True)
+    business_email = models.EmailField(blank=True)
     logo = models.ImageField(upload_to='logos/', blank=True, null=True)
     
     # Location Information
-    address_line1 = models.CharField(max_length=255)
+    address_line1 = models.CharField(max_length=255, blank=True)
     address_line2 = models.CharField(max_length=255, blank=True, null=True)
-    city = models.CharField(max_length=100)
-    state = models.CharField(max_length=50)
-    zip_code = models.CharField(max_length=10)
+    city = models.CharField(max_length=100, blank=True)
+    state = models.CharField(max_length=50, blank=True)
+    zip_code = models.CharField(max_length=10, blank=True)
     country = models.CharField(max_length=50, default='United States')
     latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
