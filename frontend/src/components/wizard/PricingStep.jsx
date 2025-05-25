@@ -278,4 +278,111 @@ const PricingStep = ({ data, updateData, onNext, onPrev }) => {
                       </button>
                     </div>
 
-                    <div className="gri
+                    <div className="grid gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-secondary-700 mb-1">
+                          Package Name *
+                        </label>
+                        <input
+                          {...register(`quote_packages.${index}.name`)}
+                          className={`input-field ${errors.quote_packages?.[index]?.name ? 'border-red-500' : ''}`}
+                          placeholder="e.g., Basic Plumbing Service"
+                        />
+                        {errors.quote_packages?.[index]?.name && (
+                          <p className="text-red-600 text-sm mt-1">
+                            {errors.quote_packages[index].name.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-secondary-700 mb-1">
+                          Description *
+                        </label>
+                        <textarea
+                          {...register(`quote_packages.${index}.description`)}
+                          rows="3"
+                          className={`input-field ${errors.quote_packages?.[index]?.description ? 'border-red-500' : ''}`}
+                          placeholder="Describe what's included in this package..."
+                        />
+                        {errors.quote_packages?.[index]?.description && (
+                          <p className="text-red-600 text-sm mt-1">
+                            {errors.quote_packages[index].description.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-secondary-700 mb-1">
+                          Price *
+                        </label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span className="text-secondary-500 sm:text-sm">$</span>
+                          </div>
+                          <input
+                            {...register(`quote_packages.${index}.price`)}
+                            type="number"
+                            step="0.01"
+                            min="1"
+                            className={`input-field pl-7 ${errors.quote_packages?.[index]?.price ? 'border-red-500' : ''}`}
+                            placeholder="500.00"
+                          />
+                        </div>
+                        {errors.quote_packages?.[index]?.price && (
+                          <p className="text-red-600 text-sm mt-1">
+                            {errors.quote_packages[index].price.message}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {fields.length > 0 && (
+              <div className="mt-4 p-4 bg-orange-50 rounded-md border border-orange-200">
+                <div className="flex">
+                  <svg className="w-5 h-5 text-orange-600 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div>
+                    <h4 className="text-sm font-medium text-orange-800">Package Examples</h4>
+                    <p className="text-sm text-orange-700 mt-1">
+                      Common packages: "Basic Service Call" ($150), "Full System Inspection" ($350), 
+                      "Emergency After-Hours" ($250+), "Standard Installation" ($500-1500).
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {errors.quote_packages && typeof errors.quote_packages === 'object' && 'message' in errors.quote_packages && (
+              <p className="text-red-600 text-sm mt-2">{errors.quote_packages.message}</p>
+            )}
+          </div>
+        )}
+
+        {/* Navigation Buttons */}
+        <div className="flex justify-between pt-6">
+          <button
+            type="button"
+            onClick={onPrev}
+            className="btn-secondary"
+          >
+            ← Back
+          </button>
+          <button
+            type="submit"
+            className="btn-primary"
+          >
+            Next: Media & Certifications →
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default PricingStep;
