@@ -89,7 +89,8 @@ const Login = () => {
               <input
                 {...register('password')}
                 type="password"
-                className={`input-field ${errors.password ? 'border-red-500 focus:ring-red-500' : ''}`}
+                autoComplete="current-password"
+                className="input-field"
                 placeholder="Enter your password"
               />
               {errors.password && (
