@@ -1,18 +1,27 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { locationStepSchema } from '../../utils/validation';
 import api from '../../services/api';
+import { profileService } from '../../services/profileService';
 
 /**
  * LocationStep - Two-phase location wizard: Address confirmation + Service area selection
  */
 const LocationStep = ({ data, updateData, onNext, onPrev }) => {
-  const [currentPhase, setCurrentPhase] = useState('address'); // 'address' or 'service_area'
-  const [confirmedAddress, setConfirmedAddress] = useState(null);
-  const [serviceAreaData, setServiceAreaData] = useState(null);
-  
-  const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
+  const [currentPhase, setCurrentPhase] = useState('address');
+  const [confirmedAddress, setConfirmedAddress] = useState(data?.location || null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    // Log state changes
+    console.log('LocationStep state updated:', {
+      currentPhase,
+      confirmedAddress,
+      error
+    });
+  }, [currentPhase, confirmedAddress, error]);
+
 
   const {
     register,
@@ -37,15 +46,45 @@ const LocationStep = ({ data, updateData, onNext, onPrev }) => {
   const watchedServiceAreaType = watch('service_area_type', 'radius');
 
   const onConfirmAddress = async (formData) => {
-  try {
-    const confirmedData = await confirmLocation(formData);
-    setConfirmedAddress(confirmedData);
-    setCurrentPhase('service_area');
-  } catch (error) {
-    // Show error to user
-    console.error('Failed to confirm address:', error);
-  }
-};
+    try {
+      console.log('Form data received:', formData); // Debug log
+
+      // Make sure we have the required location data
+      if (!formData.latitude || !formData.longitude) {
+        throw new Error('Please select a location on the map');
+      }
+
+      // Create a cleaned data object
+      const locationData = {
+        address_line1: formData.address_line1,
+        address_line2: formData.address_line2 || '',
+        city: formData.city,
+        state: formData.state,
+        zip_code: formData.zip_code,
+        latitude: formData.latitude,
+        longitude: formData.longitude
+      };
+
+      console.log('Attempting to confirm location with:', locationData); // Debug log
+
+      // For now, let's bypass the API call and just set the confirmed address
+      setConfirmedAddress(locationData);
+      setCurrentPhase('service_area');
+
+      /* Comment out the API call for now
+      const confirmedData = await confirmLocation(formData);
+      setConfirmedAddress(confirmedData);
+      setCurrentPhase('service_area');
+      */
+
+      return { success: true, data: locationData };
+    } catch (error) {
+      console.error('Failed to confirm address:', error);
+      // Show error to user
+      alert(error.message || 'Failed to confirm address. Please try again.');
+      return { success: false, error: error.message };
+    }
+  };
 
   const onConfirmServiceArea = (areaData) => {
     setServiceAreaData(areaData);
@@ -106,74 +145,97 @@ const AddressConfirmationStep = ({
   initialData,
   watch 
 }) => {
-  const [mapInstance, setMapInstance] = useState(null);
-  const [marker, setMarker] = useState(null);
-  const [mapboxgl, setMapboxgl] = useState(null);
   const mapContainer = useRef(null);
-
-  const watchedAddress = watch(['address_line1', 'city', 'state', 'zip_code']);
+  const mapInstanceRef = useRef(null);
+  const markerRef = useRef(null);
 
   useEffect(() => {
-    if (!mapboxToken) return;
+    if (!mapboxToken || !mapContainer.current) return;
 
-    let map;
-    let mapboxglInstance;
+    let isMounted = true;
 
     const initMap = async () => {
       try {
-        // Always clear the container before initializing
-        if (mapContainer.current) {
-          mapContainer.current.innerHTML = '';
+        // Clean up previous instances
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.remove();
+        }
+        if (markerRef.current) {
+          markerRef.current.remove();
         }
 
-        const mapboxglModule = await import('mapbox-gl');
-        mapboxglInstance = mapboxglModule.default;
-        setMapboxgl(mapboxglInstance);
+        // Clear container
+        mapContainer.current.innerHTML = '';
 
-        mapboxglInstance.accessToken = mapboxToken;
+        const mapboxgl = await import('mapbox-gl');
+        mapboxgl.accessToken = mapboxToken;
 
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        map = new mapboxglInstance.Map({
+        const map = new mapboxgl.Map({
           container: mapContainer.current,
           style: 'mapbox://styles/mapbox/streets-v12',
           center: [-98.5795, 39.8283],
-          zoom: 4,
+          zoom: 4
         });
 
+        // Store map instance in ref
+        mapInstanceRef.current = map;
+
         map.on('load', () => {
-          setMapInstance(map);
+          if (!isMounted) return;
 
           if (initialData?.latitude && initialData?.longitude) {
             const coords = [initialData.longitude, initialData.latitude];
             map.setCenter(coords);
             map.setZoom(12);
-            addMarker(map, coords, mapboxglInstance);
+            addMarker(coords);
           }
         });
 
         map.on('click', (e) => {
+          if (!isMounted) return;
           const coords = [e.lngLat.lng, e.lngLat.lat];
           setValue('latitude', e.lngLat.lat);
           setValue('longitude', e.lngLat.lng);
-          addMarker(map, coords, mapboxglInstance);
-          reverseGeocode(e.lngLat.lng, e.lngLat.lat);
+          addMarker(coords);
+          reverseGeocode(coords[0], coords[1]);
         });
 
       } catch (error) {
-        console.error('Error initializing address map:', error);
+        console.error('Error initializing map:', error);
       }
     };
 
     initMap();
 
     return () => {
-      if (marker) marker.remove();
-      if (mapInstance) mapInstance.remove();
-      if (mapContainer.current) mapContainer.current.innerHTML = '';
+      isMounted = false;
+      if (markerRef.current) {
+        markerRef.current.remove();
+      }
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+      }
     };
-    // eslint-disable-next-line
-  }, [mapboxToken, initialData?.latitude, initialData?.longitude]);
+  }, [mapboxToken]);
+
+  const addMarker = useCallback((coords) => {
+    if (!mapInstanceRef.current) return;
+
+    try {
+      if (markerRef.current) {
+        markerRef.current.remove();
+      }
+
+      const mapboxgl = require('mapbox-gl');
+      const newMarker = new mapboxgl.Marker({ color: '#3b82f6' })
+        .setLngLat(coords)
+        .addTo(mapInstanceRef.current);
+
+      markerRef.current = newMarker;
+    } catch (error) {
+      console.error('Error adding marker:', error);
+    }
+  }, []);
 
   // Geocode address when it changes
   useEffect(() => {
@@ -183,18 +245,6 @@ const AddressConfirmationStep = ({
       geocodeAddress(fullAddress);
     }
   }, [watchedAddress, mapboxToken]);
-
-  const addMarker = (map, coords, mapboxglInstance) => {
-    if (marker) marker.remove();
-    
-    const newMarker = new mapboxglInstance.Marker({ 
-      color: '#3b82f6',
-      scale: 1.2
-    })
-      .setLngLat(coords)
-      .addTo(map);
-    setMarker(newMarker);
-  };
 
   const geocodeAddress = async (address) => {
     if (!mapboxToken) return;
@@ -210,10 +260,10 @@ const AddressConfirmationStep = ({
         setValue('latitude', lat);
         setValue('longitude', lng);
 
-        if (mapInstance && mapboxgl) {
-          mapInstance.setCenter([lng, lat]);
-          mapInstance.setZoom(12);
-          addMarker(mapInstance, [lng, lat], mapboxgl);
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.setCenter([lng, lat]);
+          mapInstanceRef.current.setZoom(12);
+          addMarker([lng, lat]);
         }
       }
     } catch (error) {
@@ -258,6 +308,22 @@ const AddressConfirmationStep = ({
     }
   };
 
+  const onSubmit = async (data) => {
+    console.log('Form submitted with:', data); // Debug log
+    
+    try {
+      if (!data.latitude || !data.longitude) {
+        alert('Please select a location on the map');
+        return;
+      }
+      
+      await onConfirm(data);
+    } catch (error) {
+      console.error('Form submission error:', error);
+      alert('Failed to submit form. Please try again.');
+    }
+  };
+
   return (
     <div className="wizard-step">
       <div className="mb-6">
@@ -271,7 +337,7 @@ const AddressConfirmationStep = ({
 
       <div className="grid lg:grid-cols-2 gap-8">
         <div>
-          <form onSubmit={handleSubmit(onConfirm)} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-secondary-700 mb-2">
                 Street Address *
@@ -340,6 +406,10 @@ const AddressConfirmationStep = ({
                 <p className="text-red-600 text-sm mt-1">{errors.zip_code.message}</p>
               )}
             </div>
+
+            {/* Add hidden fields for coordinates */}
+            <input type="hidden" {...register('latitude')} />
+            <input type="hidden" {...register('longitude')} />
 
             <div className="flex justify-between pt-6">
               <button
@@ -1187,24 +1257,27 @@ const CustomDrawServiceArea = ({ address, mapboxToken, onDataChange }) => {
 
 const confirmLocation = async (locationData) => {
   try {
-    const payload = {
-      address_line1: locationData.address_line1,
-      address_line2: locationData.address_line2 || '',
-      city: locationData.city,
-      state: locationData.state,
-      zip_code: locationData.zip_code,
-      latitude: locationData.latitude,
-      longitude: locationData.longitude,
-      service_radius: locationData.service_radius
-    };
-
-    const response = await api.post('/v1/profiles/', payload);
-    console.log('Location confirmed:', response.data);
-    return response.data;
+    const result = await profileService.saveWizardStep('location', locationData);
+    if (result.success) {
+      return result.data;
+    }
+    throw new Error(result.error || 'Failed to save location');
   } catch (error) {
-    console.error('Error confirming location:', error);
+    console.error('Error saving location:', error);
     throw error;
   }
+};
+
+const DebugPanel = ({ data }) => {
+  if (process.env.NODE_ENV !== 'development') return null;
+  
+  return (
+    <div className="fixed bottom-4 right-4 bg-gray-900 text-white p-4 rounded-lg opacity-75 max-w-md">
+      <pre className="text-xs overflow-auto max-h-48">
+        {JSON.stringify(data, null, 2)}
+      </pre>
+    </div>
+  );
 };
 
 export default LocationStep;
