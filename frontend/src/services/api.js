@@ -26,7 +26,9 @@ api.interceptors.request.use(
     
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    return Promise.reject(error);
+  }
 );
 
 /**
@@ -43,7 +45,7 @@ api.interceptors.response.use(
 
       try {
         const refreshToken = localStorage.getItem('refresh_token');
-        const response = await axios.post(`${API_URL}/auth/token/refresh/`, {
+        const response = await axios.post(`${API_URL}/token/refresh/`, {
           refresh: refreshToken
         });
 

@@ -58,14 +58,17 @@ export const AuthProvider = ({ children }) => {
    */
   const login = async (username, password) => {
     try {
-      const response = await api.post('/auth/token/', {
+      const response = await api.post('/token/', {
         username,
         password,
       });
 
       const { access, refresh } = response.data;
+      
+      // Store tokens
       localStorage.setItem('access_token', access);
       localStorage.setItem('refresh_token', refresh);
+      
       setToken(access);
       setUser({ username });
 
@@ -74,7 +77,7 @@ export const AuthProvider = ({ children }) => {
       console.error('Login failed:', error.response?.data || error.message);
       return { 
         success: false, 
-        error: error.response?.data?.detail || 'Login failed' 
+        error: error.response?.data?.detail || 'Login failed. Please try again.' 
       };
     }
   };
@@ -84,7 +87,7 @@ export const AuthProvider = ({ children }) => {
    */
   const register = async (userData) => {
     try {
-      const response = await api.post('/auth/register/', userData);
+      const response = await api.post('/api/v1/register/', userData);
       
       // If registration returns tokens, store them
       if (response.data.tokens) {
@@ -98,10 +101,8 @@ export const AuthProvider = ({ children }) => {
       return { success: true, data: response.data };
     } catch (error) {
       console.error('Registration failed:', error.response?.data || error.message);
-      return { 
-        success: false, 
-        error: error.response?.data || { error: 'Registration failed' } 
-      };
+      const errorData = error.response?.data || { error: 'Registration failed' };
+      return { success: false, error: errorData };
     }
   };
 
