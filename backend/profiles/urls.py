@@ -1,8 +1,12 @@
 # File: backend/profiles/urls.py
 # ------------------------------
-from django.urls import path
-from .views import BusinessProfileView
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import BusinessProfileViewSet
+
+router = DefaultRouter()
+router.register('profiles', BusinessProfileViewSet, basename='profile')
 
 urlpatterns = [
-    path('profile/', BusinessProfileView.as_view(), name='business_profile'),
+    path('', include(router.urls)),
 ]

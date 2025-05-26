@@ -1,5 +1,6 @@
 # File: backend/users/views.py
 # ----------------------------
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework import status, generics
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
@@ -23,19 +24,24 @@ class RegisterView(generics.CreateAPIView):
         try:
             serializer.is_valid(raise_exception=True)
             user = serializer.save()
-            return Response(
-                {
-                    'message': 'User registered successfully',
-                    'user': {
-                        'id': user.id,
-                        'username': user.username,
-                        'email': user.email
-                    }
+            
+            # Generate tokens
+            refresh = RefreshToken.for_user(user)
+            
+            return Response({
+                'message': 'User registered successfully',
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email
                 },
-                status=status.HTTP_201_CREATED
-            )
+                'tokens': {
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
+                }
+            }, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response(
-                {'error': 'Registration failed', 'details': serializer.errors},
+                {'error': 'Registration failed', 'details': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )

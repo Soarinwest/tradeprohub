@@ -167,31 +167,20 @@ export const mediaStepSchema = yup.object({
 });
 
 // Availability step schema
-export const availabilityStepSchema = yup.object({
-  availability_schedule: yup
-    .object()
-    .test('hasWorkingDays', 'At least one working day is required', (value) => {
-      if (!value) return false;
-      
-      const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-      return days.some(day => value[day]?.enabled);
-    })
-    .test('validSchedule', 'Invalid schedule format', (value) => {
-      if (!value) return false;
-      
-      const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-      
-      return days.every(day => {
-        const schedule = value[day];
-        if (!schedule || typeof schedule !== 'object') return false;
-        
-        if (typeof schedule.enabled !== 'boolean') return false;
-        
-        if (schedule.enabled) {
-          return schedule.start_time && schedule.end_time;
-        }
-        
-        return true;
-      });
-    }),
+export const availabilityStepSchema = yup.object().shape({
+  schedule: yup.object().test(
+    'at-least-one-day',
+    'Please select at least one working day',
+    value => Object.values(value).some(day => day.enabled)
+  ),
+  custom_hours: yup.boolean(),
+  available_immediately: yup.boolean(),
+  start_date: yup.string().when('available_immediately', {
+    is: false,
+    then: yup.string().required('Start date is required when not immediately available')
+  }),
+  business_hours: yup.object().shape({
+    start: yup.string().required(),
+    end: yup.string().required()
+  })
 });

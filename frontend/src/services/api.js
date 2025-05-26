@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Get API URL from environment variables
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
 /**
  * Axios instance configured for TradeProHub API
@@ -37,29 +37,30 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const original = error.config;
+    const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !original._retry) {
-      original._retry = true;
+    // If error is 401 and we haven't already tried to refresh
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
 
       try {
         const refreshToken = localStorage.getItem('refresh_token');
+        const response = await axios.post(`${API_URL}/token/refresh/`, {
+          refresh: refreshToken
+        });
+
+        const { access } = response.data;
+        localStorage.setItem('access_token', access);
+        originalRequest.headers.Authorization = `Bearer ${access}`;
         
-        if (refreshToken) {
-          const response = await axios.post(`${API_URL}/token/refresh/`, {
-            refresh: refreshToken,
-          });
-
-          const { access } = response.data;
-          localStorage.setItem('access_token', access);
-
-          original.headers.Authorization = `Bearer ${access}`;
-          return api(original);
-        }
+        // Retry original request with new token
+        return api(originalRequest);
       } catch (refreshError) {
+        // If refresh fails, redirect to login
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         window.location.href = '/login';
+        return Promise.reject(refreshError);
       }
     }
 

@@ -113,7 +113,9 @@ const Signup = () => {
               <input
                 {...register('password')}
                 type="password"
-                className={`input-field ${errors.password ? 'border-red-500 focus:ring-red-500' : ''}`}
+                name="password"
+                autoComplete="new-password"
+                className="input-field"
                 placeholder="Create a password"
               />
               {errors.password && (
@@ -129,7 +131,9 @@ const Signup = () => {
               <input
                 {...register('confirmPassword')}
                 type="password"
-                className={`input-field ${errors.confirmPassword ? 'border-red-500 focus:ring-red-500' : ''}`}
+                name="confirmPassword"
+                autoComplete="new-password"
+                className="input-field"
                 placeholder="Confirm your password"
               />
               {errors.confirmPassword && (

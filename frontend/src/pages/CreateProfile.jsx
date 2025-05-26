@@ -9,6 +9,7 @@ import MediaStep from '../components/wizard/MediaStep';
 import AvailabilityStep from '../components/wizard/AvailabilityStep';
 import ReviewStep from '../components/wizard/ReviewStep';
 import api from '../services/api';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 /**
  * Profile creation wizard component
@@ -21,7 +22,9 @@ const CreateProfile = () => {
     location: {},
     pricing: {},
     media: {},
-    availability: {},
+    availability: {
+      availability_schedule: {} // Make sure this matches the structure
+    }
   });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -106,18 +109,61 @@ const CreateProfile = () => {
     }));
   };
 
-  const submitProfile = async () => {
-    setSubmitting(true);
+  const handleStepUpdate = (stepData, step) => {
+    // Transform availability data to match expected structure
+    if (step === 'availability') {
+      const transformedData = {
+        availability_schedule: stepData.schedule,
+        // ...other availability fields
+      };
+      setFormData(prev => ({
+        ...prev,
+        availability: transformedData
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [step]: stepData
+      }));
+    }
+  };
+
+  const handleStepComplete = async (stepData, step) => {
+    console.log(`Step ${step} completed with data:`, stepData);
     
     try {
-      // Prepare the payload matching the backend serializer structure
+      setFormData(prev => {
+        const newData = {
+          ...prev,
+          [step]: stepData
+        };
+        console.log('Updated form data:', newData);
+        return newData;
+      });
+
+      // If this is the final step (Review), submit the entire form
+      if (step === 'review') {
+        await submitProfile();
+      } else {
+        setCurrentStep(prev => prev + 1);
+      }
+    } catch (error) {
+      console.error('Error completing step:', error);
+    }
+  };
+
+  const submitProfile = async () => {
+    console.log('Submitting profile with data:', formData);
+    setSubmitting(true);
+
+    try {
+      // Transform data to match API expectations
       const payload = {
-        // Business info
         business_name: formData.business.name,
         business_phone: formData.business.phone,
         business_email: formData.business.email,
         
-        // Location info
+        // Location
         address_line1: formData.location.address_line1,
         address_line2: formData.location.address_line2,
         city: formData.location.city,
@@ -127,32 +173,36 @@ const CreateProfile = () => {
         longitude: formData.location.longitude,
         service_radius: formData.location.service_radius,
         
-        // Pricing info
+        // Pricing
         pricing_mode: formData.pricing.mode,
-        hourly_rate: formData.pricing.hourly_rate || null,
-        minimum_charge: formData.pricing.minimum_charge || null,
+        hourly_rate: formData.pricing.hourly_rate,
+        minimum_charge: formData.pricing.minimum_charge,
         quote_packages: formData.pricing.quote_packages,
         
-        // Media info
+        // Media
+        profile_photo: formData.media.profile_photo,
+        gallery_images: formData.media.gallery_images,
         certifications: formData.media.certifications,
-        gallery_images: [],
         
-        // Availability info
+        // Availability
         availability_schedule: formData.availability.availability_schedule,
+        available_immediately: formData.availability.available_immediately,
+        start_date: formData.availability.start_date
       };
 
-      const response = await api.put('/profile/', payload);
-      
+      console.log('Sending payload to API:', payload);
+
+      const response = await api.post('/api/profiles/', payload);
+      console.log('API Response:', response);
+
       if (response.data.success) {
         navigate('/dashboard', { 
           state: { message: 'Profile created successfully!' }
         });
-      } else {
-        throw new Error(response.data.error || 'Failed to save profile');
       }
     } catch (error) {
-      console.error('Failed to submit profile:', error);
-      alert('Failed to save profile. Please try again.');
+      console.error('Profile submission error:', error);
+      alert(`Failed to save profile: ${error.message}`);
     } finally {
       setSubmitting(false);
     }
@@ -171,59 +221,62 @@ const CreateProfile = () => {
   const CurrentStepComponent = steps[currentStep - 1].component;
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      {/* Progress Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-secondary-900 mb-6">
-          Create Your Business Profile
-        </h1>
-        
-        {/* Step Progress */}
-        <div className="flex items-center justify-between mb-6">
-          {steps.map((step, index) => (
-            <div key={step.number} className="flex items-center">
-              <div 
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
-                  currentStep >= step.number 
-                    ? 'bg-primary-500 text-white' 
-                    : 'bg-secondary-200 text-secondary-600'
-                }`}
-              >
-                {step.number}
-              </div>
-              <span 
-                className={`ml-2 font-medium ${
-                  currentStep >= step.number ? 'text-primary-600' : 'text-secondary-600'
-                }`}
-              >
-                {step.name}
-              </span>
-              {index < steps.length - 1 && (
+    <ErrorBoundary>
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        {/* Progress Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-secondary-900 mb-6">
+            Create Your Business Profile
+          </h1>
+          
+          {/* Step Progress */}
+          <div className="flex items-center justify-between mb-6">
+            {steps.map((step, index) => (
+              <div key={step.number} className="flex items-center">
                 <div 
-                  className={`w-12 h-0.5 mx-4 ${
-                    currentStep > step.number ? 'bg-primary-500' : 'bg-secondary-200'
+                  className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
+                    currentStep >= step.number 
+                      ? 'bg-primary-500 text-white' 
+                      : 'bg-secondary-200 text-secondary-600'
                   }`}
-                />
-              )}
-            </div>
-          ))}
+                >
+                  {step.number}
+                </div>
+                <span 
+                  className={`ml-2 font-medium ${
+                    currentStep >= step.number ? 'text-primary-600' : 'text-secondary-600'
+                  }`}
+                >
+                  {step.name}
+                </span>
+                {index < steps.length - 1 && (
+                  <div 
+                    className={`w-12 h-0.5 mx-4 ${
+                      currentStep > step.number ? 'bg-primary-500' : 'bg-secondary-200'
+                    }`}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Step Content */}
+        <div className="card">
+          <CurrentStepComponent
+            data={formData}
+            updateData={updateFormData}
+            onNext={nextStep}
+            onPrev={prevStep}
+            onSubmit={submitProfile}
+            isFirstStep={currentStep === 1}
+            isLastStep={currentStep === steps.length}
+            submitting={submitting}
+            onComplete={handleStepComplete}
+          />
         </div>
       </div>
-
-      {/* Step Content */}
-      <div className="card">
-        <CurrentStepComponent
-          data={formData}
-          updateData={updateFormData}
-          onNext={nextStep}
-          onPrev={prevStep}
-          onSubmit={submitProfile}
-          isFirstStep={currentStep === 1}
-          isLastStep={currentStep === steps.length}
-          submitting={submitting}
-        />
-      </div>
-    </div>
+    </ErrorBoundary>
   );
 };
 

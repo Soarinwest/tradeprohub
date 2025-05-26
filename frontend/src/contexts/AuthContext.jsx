@@ -30,14 +30,17 @@ export const AuthProvider = ({ children }) => {
       
       if (storedToken) {
         try {
-          // Verify token by making authenticated request
-          const response = await api.get('/profile/');
-          if (response.data.success) {
-            setUser({ id: response.data.profile.user });
+          // Update endpoint to match backend
+          const response = await api.get('/api/v1/profiles/');
+          if (response.data) {
+            setUser({ 
+              id: response.data.id,
+              username: response.data.user.username 
+            });
             setToken(storedToken);
           }
         } catch (error) {
-          console.error('Token validation failed:', error);
+          console.error('Token validation failed:', error.response?.data || error.message);
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
           setToken(null);
@@ -71,9 +74,11 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true };
     } catch (error) {
-      console.error('Login failed:', error);
-      const errorMessage = error.response?.data?.detail || 'Login failed. Please try again.';
-      return { success: false, error: errorMessage };
+      console.error('Login failed:', error.response?.data || error.message);
+      return { 
+        success: false, 
+        error: error.response?.data?.detail || 'Login failed. Please try again.' 
+      };
     }
   };
 
@@ -82,11 +87,21 @@ export const AuthProvider = ({ children }) => {
    */
   const register = async (userData) => {
     try {
-      const response = await api.post('/register/', userData);
+      const response = await api.post('/api/v1/register/', userData);
+      
+      // If registration returns tokens, store them
+      if (response.data.tokens) {
+        const { access, refresh } = response.data.tokens;
+        localStorage.setItem('access_token', access);
+        localStorage.setItem('refresh_token', refresh);
+        setToken(access);
+        setUser({ username: userData.username });
+      }
+      
       return { success: true, data: response.data };
     } catch (error) {
-      console.error('Registration failed:', error);
-      const errorData = error.response?.data;
+      console.error('Registration failed:', error.response?.data || error.message);
+      const errorData = error.response?.data || { error: 'Registration failed' };
       return { success: false, error: errorData };
     }
   };

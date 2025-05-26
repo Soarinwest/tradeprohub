@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { locationStepSchema } from '../../utils/validation';
+import api from '../../services/api';
 
 /**
  * LocationStep - Two-phase location wizard: Address confirmation + Service area selection
@@ -35,10 +36,16 @@ const LocationStep = ({ data, updateData, onNext, onPrev }) => {
   const watchedZipCode = watch('zip_code');
   const watchedServiceAreaType = watch('service_area_type', 'radius');
 
-  const onConfirmAddress = (formData) => {
-    setConfirmedAddress(formData);
+  const onConfirmAddress = async (formData) => {
+  try {
+    const confirmedData = await confirmLocation(formData);
+    setConfirmedAddress(confirmedData);
     setCurrentPhase('service_area');
-  };
+  } catch (error) {
+    // Show error to user
+    console.error('Failed to confirm address:', error);
+  }
+};
 
   const onConfirmServiceArea = (areaData) => {
     setServiceAreaData(areaData);
@@ -1176,6 +1183,28 @@ const CustomDrawServiceArea = ({ address, mapboxToken, onDataChange }) => {
       )}
     </div>
   );
+};
+
+const confirmLocation = async (locationData) => {
+  try {
+    const payload = {
+      address_line1: locationData.address_line1,
+      address_line2: locationData.address_line2 || '',
+      city: locationData.city,
+      state: locationData.state,
+      zip_code: locationData.zip_code,
+      latitude: locationData.latitude,
+      longitude: locationData.longitude,
+      service_radius: locationData.service_radius
+    };
+
+    const response = await api.post('/v1/profiles/', payload);
+    console.log('Location confirmed:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error confirming location:', error);
+    throw error;
+  }
 };
 
 export default LocationStep;

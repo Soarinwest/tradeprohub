@@ -4,7 +4,20 @@ import React from 'react';
  * ReviewStep - Final review of all profile information
  * Shows a comprehensive summary before submission
  */
-const ReviewStep = ({ data, onPrev, onSubmit, submitting }) => {
+const ReviewStep = ({ 
+  data = {
+    business: {},
+    location: {},
+    pricing: {},
+    media: {},
+    availability: {
+      availability_schedule: {} // This was missing and causing issues
+    }
+  }, 
+  onPrev, 
+  onSubmit, 
+  submitting = false 
+}) => {
   // Format phone number for display
   const formatPhone = (phone) => {
     const cleaned = phone.replace(/\D/g, '');
@@ -28,11 +41,15 @@ const ReviewStep = ({ data, onPrev, onSubmit, submitting }) => {
     const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     
+    if (!data.availability?.availability_schedule) {
+      return [];
+    }
+    
     const workingDays = days
       .map((day, index) => ({
         day,
         label: dayLabels[index],
-        schedule: data.availability.availability_schedule[day]
+        schedule: data.availability.availability_schedule[day] || { enabled: false }
       }))
       .filter(item => item.schedule.enabled);
 
@@ -40,6 +57,24 @@ const ReviewStep = ({ data, onPrev, onSubmit, submitting }) => {
   };
 
   const workingDays = getWorkingDaysSummary();
+
+  // Add safety checks for nested data
+  const address = data.location || {};
+  const pricing = data.pricing || {};
+  const media = data.media || {};
+
+  const handleSubmit = () => {
+    // Validate required sections
+    const requiredSections = ['business', 'location', 'pricing', 'availability'];
+    const missingSections = requiredSections.filter(section => !data[section] || Object.keys(data[section]).length === 0);
+
+    if (missingSections.length > 0) {
+      alert(`Please complete the following sections: ${missingSections.join(', ')}`);
+      return;
+    }
+
+    onSubmit(data);
+  };
 
   return (
     <div className="wizard-step">
@@ -110,16 +145,16 @@ const ReviewStep = ({ data, onPrev, onSubmit, submitting }) => {
             <div>
               <p className="text-sm text-secondary-600">Address</p>
               <p className="font-medium text-secondary-900">
-                {data.location.address_line1}
-                {data.location.address_line2 && <>, {data.location.address_line2}</>}
+                {address.address_line1}
+                {address.address_line2 && <>, {address.address_line2}</>}
               </p>
               <p className="font-medium text-secondary-900">
-                {data.location.city}, {data.location.state} {data.location.zip_code}
+                {address.city}, {address.state} {address.zip_code}
               </p>
             </div>
             <div>
               <p className="text-sm text-secondary-600">Service Radius</p>
-              <p className="font-medium text-secondary-900">{data.location.service_radius} miles</p>
+              <p className="font-medium text-secondary-900">{address.service_radius} miles</p>
             </div>
           </div>
         </div>
@@ -145,25 +180,25 @@ const ReviewStep = ({ data, onPrev, onSubmit, submitting }) => {
           <div>
             <p className="text-sm text-secondary-600">Pricing Mode</p>
             <p className="font-medium text-secondary-900 capitalize mb-3">
-              {data.pricing.mode === 'hourly' ? 'Hourly Rate' : 'Project Quotes'}
+              {pricing.mode === 'hourly' ? 'Hourly Rate' : 'Project Quotes'}
             </p>
             
-            {data.pricing.mode === 'hourly' ? (
+            {pricing.mode === 'hourly' ? (
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-secondary-600">Hourly Rate:</span>
-                  <span className="font-medium text-secondary-900">${data.pricing.hourly_rate}/hour</span>
+                  <span className="font-medium text-secondary-900">${pricing.hourly_rate}/hour</span>
                 </div>
-                {data.pricing.minimum_charge && (
+                {pricing.minimum_charge && (
                   <div className="flex justify-between">
                     <span className="text-secondary-600">Minimum Charge:</span>
-                    <span className="font-medium text-secondary-900">${data.pricing.minimum_charge}</span>
+                    <span className="font-medium text-secondary-900">${pricing.minimum_charge}</span>
                   </div>
                 )}
               </div>
             ) : (
               <div className="space-y-3">
-                {data.pricing.quote_packages.map((pkg, index) => (
+                {pricing.quote_packages?.map((pkg, index) => (
                   <div key={index} className="bg-secondary-50 rounded p-3">
                     <div className="flex justify-between items-start">
                       <div>
@@ -201,20 +236,20 @@ const ReviewStep = ({ data, onPrev, onSubmit, submitting }) => {
             <div>
               <p className="text-sm text-secondary-600">Profile Photo</p>
               <p className="font-medium text-secondary-900">
-                {data.media.profile_photo ? '✓ Uploaded' : '✗ Not uploaded'}
+                {media.profile_photo ? '✓ Uploaded' : '✗ Not uploaded'}
               </p>
             </div>
             <div>
               <p className="text-sm text-secondary-600">Gallery Images</p>
               <p className="font-medium text-secondary-900">
-                {data.media.gallery_images?.length || 0} photos uploaded
+                {media.gallery_images?.length || 0} photos uploaded
               </p>
             </div>
-            {data.media.certifications && (
+            {media.certifications && (
               <div>
                 <p className="text-sm text-secondary-600">Certifications</p>
                 <p className="font-medium text-secondary-900 whitespace-pre-line">
-                  {data.media.certifications}
+                  {media.certifications}
                 </p>
               </div>
             )}
@@ -294,7 +329,7 @@ const ReviewStep = ({ data, onPrev, onSubmit, submitting }) => {
           
           <button
             type="button"
-            onClick={onSubmit}
+            onClick={handleSubmit}
             disabled={submitting}
             className="btn-primary min-w-[200px]"
           >

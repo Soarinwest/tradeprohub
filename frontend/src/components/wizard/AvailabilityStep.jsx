@@ -7,7 +7,26 @@ import { availabilityStepSchema } from '../../utils/validation';
  * AvailabilityStep - Weekly schedule and availability settings
  * Allows users to set their working days and hours
  */
-const AvailabilityStep = ({ data = { availability: {} }, updateData, onNext, onPrev }) => {
+const AvailabilityStep = ({ 
+  data = { 
+    availability_schedule: {},
+    available_immediately: true,
+    start_date: '' 
+  }, 
+  onComplete,
+  onPrev 
+}) => {
+  // Initialize default schedule
+  const defaultSchedule = {
+    monday: { enabled: false, start: '09:00', end: '17:00' },
+    tuesday: { enabled: false, start: '09:00', end: '17:00' },
+    wednesday: { enabled: false, start: '09:00', end: '17:00' },
+    thursday: { enabled: false, start: '09:00', end: '17:00' },
+    friday: { enabled: false, start: '09:00', end: '17:00' },
+    saturday: { enabled: false, start: '09:00', end: '17:00' },
+    sunday: { enabled: false, start: '09:00', end: '17:00' }
+  };
+
   const days = [
     { key: 'monday', label: 'Monday', short: 'M' },
     { key: 'tuesday', label: 'Tuesday', short: 'T' },
@@ -32,19 +51,17 @@ const AvailabilityStep = ({ data = { availability: {} }, updateData, onNext, onP
     handleSubmit,
     formState: { errors },
     watch,
-    setValue,
+    setValue
   } = useForm({
     resolver: yupResolver(availabilityStepSchema),
     defaultValues: {
-      schedule: data.availability?.schedule || defaultSchedule,
-      custom_hours: data.availability?.custom_hours || false,
-      available_immediately: data.availability?.available_immediately || false,
-      start_date: data.availability?.start_date || '',
-      business_hours: data.availability?.business_hours || defaultBusinessHours,
+      schedule: data.availability_schedule || defaultSchedule,
+      available_immediately: data.available_immediately ?? true,
+      start_date: data.start_date || ''
     }
   });
 
-  const watchedSchedule = watch('schedule');
+  const watchedSchedule = watch('schedule') || defaultSchedule;
 
   // Format time for display
   function formatTime(time) {
@@ -84,11 +101,21 @@ const AvailabilityStep = ({ data = { availability: {} }, updateData, onNext, onP
   };
 
   const onSubmit = (formData) => {
-    updateData('availability', formData);
-    onNext();
+    console.log('AvailabilityStep - Submitting data:', formData);
+    
+    if (onComplete) {
+      try {
+        onComplete(formData, 'availability');
+      } catch (error) {
+        console.error('Error in AvailabilityStep submission:', error);
+      }
+    } else {
+      console.warn('AvailabilityStep - onComplete prop is not defined');
+    }
   };
 
-  const hasEnabledDays = days.some(day => watchedSchedule[day.key].enabled);
+  // Safe check for enabled days
+  const hasEnabledDays = Object.values(watchedSchedule).some(day => day?.enabled === true);
 
   return (
     <div className="wizard-step">

@@ -6,33 +6,34 @@ from .models import BusinessProfile, GalleryImage
 @admin.register(BusinessProfile)
 class BusinessProfileAdmin(admin.ModelAdmin):
     """Admin interface for business profiles"""
-    list_display = ['business_name', 'user', 'city', 'state', 'pricing_mode', 'is_complete', 'created_at']
-    list_filter = ['pricing_mode', 'is_complete', 'state', 'created_at']
-    search_fields = ['business_name', 'user__username', 'business_email']
-    readonly_fields = ['created_at', 'updated_at', 'is_complete']
-    
+    list_display = [
+        'business_name',
+        'business_email',
+        'business_phone',
+        'city',
+        'created_at'
+    ]
+    list_filter = ['created_at', 'state']
+    readonly_fields = ['created_at', 'updated_at']
+    search_fields = ['business_name', 'business_email', 'city']
     fieldsets = (
-        ('User', {
-            'fields': ('user',)
-        }),
-        ('Business Info', {
-            'fields': ('business_name', 'business_phone', 'business_email', 'logo')
+        ('Business Information', {
+            'fields': ('business_name', 'business_email', 'business_phone')
         }),
         ('Location', {
-            'fields': ('address_line1', 'address_line2', 'city', 'state', 'zip_code', 
-                      'country', 'latitude', 'longitude', 'service_radius')
+            'fields': (
+                'address_line1',
+                'address_line2',
+                'city',
+                'state',
+                'zip_code',
+                'latitude',
+                'longitude',
+                'service_radius'
+            )
         }),
-        ('Pricing', {
-            'fields': ('pricing_mode', 'hourly_rate', 'minimum_charge', 'quote_packages')
-        }),
-        ('Media', {
-            'fields': ('certifications', 'profile_photo', 'gallery_images')
-        }),
-        ('Availability', {
-            'fields': ('availability_schedule',)
-        }),
-        ('Meta', {
-            'fields': ('is_complete', 'created_at', 'updated_at'),
+        ('Metadata', {
+            'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
         })
     )
@@ -40,6 +41,7 @@ class BusinessProfileAdmin(admin.ModelAdmin):
 @admin.register(GalleryImage)
 class GalleryImageAdmin(admin.ModelAdmin):
     """Admin interface for gallery images"""
-    list_display = ['profile', 'caption', 'uploaded_at']
-    list_filter = ['uploaded_at']
-    search_fields = ['profile__business_name', 'caption']
+    list_display = ['profile', 'caption', 'created_at']
+    list_filter = ['created_at']
+    search_fields = ['caption']
+    raw_id_fields = ['profile']

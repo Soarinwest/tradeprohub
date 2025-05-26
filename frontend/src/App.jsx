@@ -16,7 +16,12 @@ import Dashboard from './pages/Dashboard';
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true
+        }}
+      >
         <div className="min-h-screen bg-secondary-50">
           <Navbar />
           <main>
