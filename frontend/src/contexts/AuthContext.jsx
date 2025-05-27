@@ -30,12 +30,12 @@ export const AuthProvider = ({ children }) => {
       
       if (storedToken) {
         try {
-          // Update endpoint to match backend
-          const response = await api.get('/api/v1/profiles/');
+          // Fixed: Remove duplicate /api/v1
+          const response = await api.get('/profiles/');
           if (response.data) {
             setUser({ 
               id: response.data.id,
-              username: response.data.user.username 
+              username: response.data.user?.username || response.data.username
             });
             setToken(storedToken);
           }
@@ -87,7 +87,8 @@ export const AuthProvider = ({ children }) => {
    */
   const register = async (userData) => {
     try {
-      const response = await api.post('/api/v1/register/', userData);
+      // Fixed: Remove duplicate /api/v1
+      const response = await api.post('/register/', userData);
       
       // If registration returns tokens, store them
       if (response.data.tokens) {

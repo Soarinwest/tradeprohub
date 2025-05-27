@@ -69,7 +69,61 @@ export const businessStepSchema = yup.object({
     }),
 });
 
-// Location step schema
+// Address step schema (separated from location)
+export const addressStepSchema = yup.object({
+  address_line1: yup
+    .string()
+    .required('Address is required')
+    .max(255, 'Address must be less than 255 characters'),
+  address_line2: yup
+    .string()
+    .max(255, 'Address line 2 must be less than 255 characters'),
+  city: yup
+    .string()
+    .required('City is required')
+    .max(100, 'City must be less than 100 characters'),
+  state: yup
+    .string()
+    .required('State is required')
+    .max(50, 'State must be less than 50 characters'),
+  zip_code: yup
+    .string()
+    .required('ZIP code is required')
+    .matches(/^\d{5}(-\d{4})?$/, 'Invalid ZIP code format'),
+  latitude: yup
+    .number()
+    .nullable()
+    .min(-90, 'Invalid latitude')
+    .max(90, 'Invalid latitude'),
+  longitude: yup
+    .number()
+    .nullable()
+    .min(-180, 'Invalid longitude')
+    .max(180, 'Invalid longitude'),
+});
+
+// Service area step schema (new)
+export const serviceAreaStepSchema = yup.object({
+  service_area_type: yup
+    .string()
+    .required('Service area type is required')
+    .oneOf(['radius', 'town', 'county', 'state', 'custom_draw'], 'Invalid service area type'),
+  service_radius: yup
+    .number()
+    .when('service_area_type', {
+      is: 'radius',
+      then: (schema) => schema
+        .required('Service radius is required')
+        .min(1, 'Service radius must be at least 1 mile')
+        .max(500, 'Service radius must be less than 500 miles'),
+      otherwise: (schema) => schema.nullable(),
+    }),
+  willing_to_travel_outside: yup
+    .boolean()
+    .default(false),
+});
+
+// Old location step schema (kept for backward compatibility)
 export const locationStepSchema = yup.object({
   address_line1: yup
     .string()

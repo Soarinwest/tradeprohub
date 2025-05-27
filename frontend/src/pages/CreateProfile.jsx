@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BusinessStep from '../components/wizard/BusinessStep';
-import LocationStep from '../components/wizard/LocationStep';
+import AddressStep from '../components/wizard/AddressStep';
+import ServiceAreaStep from '../components/wizard/ServiceAreaStep';
 import PricingStep from '../components/wizard/PricingStep';
 import MediaStep from '../components/wizard/MediaStep';
 import AvailabilityStep from '../components/wizard/AvailabilityStep';
@@ -13,17 +14,18 @@ import ErrorBoundary from '../components/ErrorBoundary';
 
 /**
  * Profile creation wizard component
- * 6-step process to collect complete business profile information
+ * 7-step process to collect complete business profile information
  */
 const CreateProfile = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     business: {},
-    location: {},
+    address: {},
+    serviceArea: {},
     pricing: {},
     media: {},
     availability: {
-      availability_schedule: {} // Make sure this matches the structure
+      availability_schedule: {}
     }
   });
   const [loading, setLoading] = useState(true);
@@ -32,20 +34,21 @@ const CreateProfile = () => {
 
   const steps = [
     { number: 1, name: 'Business', component: BusinessStep },
-    { number: 2, name: 'Location', component: LocationStep },
-    { number: 3, name: 'Pricing', component: PricingStep },
-    { number: 4, name: 'Media', component: MediaStep },
-    { number: 5, name: 'Availability', component: AvailabilityStep },
-    { number: 6, name: 'Review', component: ReviewStep },
+    { number: 2, name: 'Address', component: AddressStep },
+    { number: 3, name: 'Service Area', component: ServiceAreaStep },
+    { number: 4, name: 'Pricing', component: PricingStep },
+    { number: 5, name: 'Media', component: MediaStep },
+    { number: 6, name: 'Availability', component: AvailabilityStep },
+    { number: 7, name: 'Review', component: ReviewStep },
   ];
 
   // Load existing profile data if available
   useEffect(() => {
     const loadProfile = async () => {
       try {
-        const response = await api.get('/profile/');
-        if (response.data.success && response.data.profile) {
-          const profile = response.data.profile;
+        const response = await api.get('/profiles/');
+        if (response.data) {
+          const profile = response.data;
           
           setFormData({
             business: {
@@ -54,7 +57,7 @@ const CreateProfile = () => {
               email: profile.business_email || '',
               logo: null,
             },
-            location: {
+            address: {
               address_line1: profile.address_line1 || '',
               address_line2: profile.address_line2 || '',
               city: profile.city || '',
@@ -62,7 +65,11 @@ const CreateProfile = () => {
               zip_code: profile.zip_code || '',
               latitude: profile.latitude || null,
               longitude: profile.longitude || null,
-              service_radius: profile.service_radius || 25,
+            },
+            serviceArea: {
+              type: profile.service_area_type || 'radius',
+              radius: profile.service_radius || 25,
+              willing_to_travel_outside: profile.willing_to_travel_outside || false,
             },
             pricing: {
               mode: profile.pricing_mode || 'hourly',
@@ -103,53 +110,11 @@ const CreateProfile = () => {
   };
 
   const updateFormData = (section, data) => {
+    console.log(`Updating ${section} with:`, data);
     setFormData(prev => ({
       ...prev,
       [section]: { ...prev[section], ...data }
     }));
-  };
-
-  const handleStepUpdate = (stepData, step) => {
-    // Transform availability data to match expected structure
-    if (step === 'availability') {
-      const transformedData = {
-        availability_schedule: stepData.schedule,
-        // ...other availability fields
-      };
-      setFormData(prev => ({
-        ...prev,
-        availability: transformedData
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [step]: stepData
-      }));
-    }
-  };
-
-  const handleStepComplete = async (stepData, step) => {
-    console.log(`Step ${step} completed with data:`, stepData);
-    
-    try {
-      setFormData(prev => {
-        const newData = {
-          ...prev,
-          [step]: stepData
-        };
-        console.log('Updated form data:', newData);
-        return newData;
-      });
-
-      // If this is the final step (Review), submit the entire form
-      if (step === 'review') {
-        await submitProfile();
-      } else {
-        setCurrentStep(prev => prev + 1);
-      }
-    } catch (error) {
-      console.error('Error completing step:', error);
-    }
   };
 
   const submitProfile = async () => {
@@ -163,15 +128,19 @@ const CreateProfile = () => {
         business_phone: formData.business.phone,
         business_email: formData.business.email,
         
-        // Location
-        address_line1: formData.location.address_line1,
-        address_line2: formData.location.address_line2,
-        city: formData.location.city,
-        state: formData.location.state,
-        zip_code: formData.location.zip_code,
-        latitude: formData.location.latitude,
-        longitude: formData.location.longitude,
-        service_radius: formData.location.service_radius,
+        // Address
+        address_line1: formData.address.address_line1,
+        address_line2: formData.address.address_line2,
+        city: formData.address.city,
+        state: formData.address.state,
+        zip_code: formData.address.zip_code,
+        latitude: formData.address.latitude,
+        longitude: formData.address.longitude,
+        
+        // Service Area
+        service_area_type: formData.serviceArea.type,
+        service_radius: formData.serviceArea.radius,
+        willing_to_travel_outside: formData.serviceArea.willing_to_travel_outside,
         
         // Pricing
         pricing_mode: formData.pricing.mode,
@@ -192,17 +161,17 @@ const CreateProfile = () => {
 
       console.log('Sending payload to API:', payload);
 
-      const response = await api.post('/api/profiles/', payload);
+      const response = await api.post('/profiles/', payload);
       console.log('API Response:', response);
 
-      if (response.data.success) {
+      if (response.status === 201 || response.status === 200) {
         navigate('/dashboard', { 
           state: { message: 'Profile created successfully!' }
         });
       }
     } catch (error) {
       console.error('Profile submission error:', error);
-      alert(`Failed to save profile: ${error.message}`);
+      alert(`Failed to save profile: ${error.response?.data?.detail || error.message}`);
     } finally {
       setSubmitting(false);
     }
@@ -245,13 +214,13 @@ const CreateProfile = () => {
                 <span 
                   className={`ml-2 font-medium ${
                     currentStep >= step.number ? 'text-primary-600' : 'text-secondary-600'
-                  }`}
+                  } ${index === steps.length - 1 ? '' : 'hidden sm:inline'}`}
                 >
                   {step.name}
                 </span>
                 {index < steps.length - 1 && (
                   <div 
-                    className={`w-12 h-0.5 mx-4 ${
+                    className={`w-4 sm:w-12 h-0.5 mx-2 ${
                       currentStep > step.number ? 'bg-primary-500' : 'bg-secondary-200'
                     }`}
                   />
@@ -272,7 +241,6 @@ const CreateProfile = () => {
             isFirstStep={currentStep === 1}
             isLastStep={currentStep === steps.length}
             submitting={submitting}
-            onComplete={handleStepComplete}
           />
         </div>
       </div>

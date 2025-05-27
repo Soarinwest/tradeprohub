@@ -3,11 +3,14 @@ import axios from 'axios';
 // Get API URL from environment variables
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
+// Ensure the URL doesn't end with a slash to prevent double slashes
+const BASE_URL = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
+
 /**
  * Axios instance configured for TradeProHub API
  */
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -22,6 +25,11 @@ api.interceptors.request.use(
     
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    // Log requests in development
+    if (import.meta.env.DEV) {
+      console.log(`API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
     }
     
     return config;
@@ -39,13 +47,22 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Log errors in development
+    if (import.meta.env.DEV && error.response) {
+      console.error(`API Error: ${error.response.status} ${error.config.url}`);
+    }
+
     // If error is 401 and we haven't already tried to refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
         const refreshToken = localStorage.getItem('refresh_token');
-        const response = await axios.post(`${API_URL}/token/refresh/`, {
+        if (!refreshToken) {
+          throw new Error('No refresh token available');
+        }
+
+        const response = await axios.post(`${BASE_URL}/token/refresh/`, {
           refresh: refreshToken
         });
 
