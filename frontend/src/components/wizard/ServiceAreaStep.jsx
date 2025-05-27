@@ -260,7 +260,8 @@ const RadiusServiceArea = ({ address, mapboxToken, onDataChange, radius }) => {
   const [mapInstance, setMapInstance] = useState(null);
   const [marker, setMarker] = useState(null);
   const mapContainer = useRef(null);
-
+  
+  // First useEffect for map initialization
   useEffect(() => {
     if (!mapboxToken || !address?.latitude || !address?.longitude) return;
 
@@ -291,9 +292,6 @@ const RadiusServiceArea = ({ address, mapboxToken, onDataChange, radius }) => {
             .setLngLat([address.longitude, address.latitude])
             .addTo(map);
           setMarker(newMarker);
-          
-          // Draw initial circle
-          updateCircle(map, radius);
         });
 
       } catch (error) {
@@ -306,86 +304,90 @@ const RadiusServiceArea = ({ address, mapboxToken, onDataChange, radius }) => {
     return () => {
       if (marker) marker.remove();
       if (mapInstance) mapInstance.remove();
-      if (mapContainer.current) mapContainer.current.innerHTML = '';
+      if (mapContainer.current) mapContainer.innerHTML = '';
     };
-  }, [mapboxToken, address]);
+  }, [mapboxToken, address]); // Remove marker and mapInstance from dependencies
 
+  // Separate useEffect for circle updates
   useEffect(() => {
+    const updateCircle = (map, currentRadius) => {
+      if (!map || !address) return;
+
+      // Remove existing layers
+      if (map.getLayer('circle-fill')) {
+        map.removeLayer('circle-fill');
+        map.removeLayer('circle-border');
+        map.removeSource('circle');
+      }
+
+      // Create circle coordinates
+      const radiusInKm = currentRadius * 1.60934;
+      const coords = [address.longitude, address.latitude];
+      const points = 64;
+      const circleCoords = [];
+
+      for (let i = 0; i < points; i++) {
+        const angle = (i / points) * 2 * Math.PI;
+        const dx = radiusInKm * Math.cos(angle);
+        const dy = radiusInKm * Math.sin(angle);
+        
+        const deltaLng = dx / (111.32 * Math.cos((coords[1] * Math.PI) / 180));
+        const deltaLat = dy / 110.54;
+        
+        circleCoords.push([
+          coords[0] + deltaLng,
+          coords[1] + deltaLat
+        ]);
+      }
+      circleCoords.push(circleCoords[0]);
+
+      // Add circle source and layers
+      map.addSource('circle', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: {
+            type: 'Polygon',
+            coordinates: [circleCoords]
+          }
+        }
+      });
+
+      map.addLayer({
+        id: 'circle-fill',
+        type: 'fill',
+        source: 'circle',
+        paint: {
+          'fill-color': '#3b82f6',
+          'fill-opacity': 0.2
+        }
+      });
+
+      map.addLayer({
+        id: 'circle-border',
+        type: 'line',
+        source: 'circle',
+        paint: {
+          'line-color': '#3b82f6',
+          'line-width': 2
+        }
+      });
+    };
+
     if (mapInstance) {
       updateCircle(mapInstance, radius);
-      onDataChange({
-        type: 'radius',
-        radius: radius,
-        center: [address.longitude, address.latitude]
-      });
+      // Wrap onDataChange in a timeout to break the render cycle
+      const timeoutId = setTimeout(() => {
+        onDataChange({
+          type: 'radius',
+          radius: radius,
+          center: [address.longitude, address.latitude]
+        });
+      }, 0);
+
+      return () => clearTimeout(timeoutId);
     }
-  }, [radius, mapInstance, address, onDataChange]);
-
-  const updateCircle = (map, currentRadius) => {
-    if (!map || !address) return;
-
-    // Remove existing layers
-    if (map.getLayer('circle-fill')) {
-      map.removeLayer('circle-fill');
-      map.removeLayer('circle-border');
-      map.removeSource('circle');
-    }
-
-    // Create circle coordinates
-    const radiusInKm = currentRadius * 1.60934;
-    const coords = [address.longitude, address.latitude];
-    const points = 64;
-    const circleCoords = [];
-
-    for (let i = 0; i < points; i++) {
-      const angle = (i / points) * 2 * Math.PI;
-      const dx = radiusInKm * Math.cos(angle);
-      const dy = radiusInKm * Math.sin(angle);
-      
-      const deltaLng = dx / (111.32 * Math.cos((coords[1] * Math.PI) / 180));
-      const deltaLat = dy / 110.54;
-      
-      circleCoords.push([
-        coords[0] + deltaLng,
-        coords[1] + deltaLat
-      ]);
-    }
-    circleCoords.push(circleCoords[0]);
-
-    // Add circle source
-    map.addSource('circle', {
-      type: 'geojson',
-      data: {
-        type: 'Feature',
-        geometry: {
-          type: 'Polygon',
-          coordinates: [circleCoords]
-        }
-      }
-    });
-
-    // Add fill layer
-    map.addLayer({
-      id: 'circle-fill',
-      type: 'fill',
-      source: 'circle',
-      paint: {
-        'fill-color': '#3b82f6',
-        'fill-opacity': 0.2
-      }
-    });
-
-    // Add border layer
-    map.addLayer({
-      id: 'circle-border',
-      type: 'line',
-      source: 'circle',
-      paint: {
-        'line-color': '#3b82f6',
-        'line-width': 2
-      }
-    });
-  };
+  }, [radius, mapInstance, address?.latitude, address?.longitude]); // Remove onDataChange from dependencies
 
   return (
     <div>
@@ -563,6 +565,9 @@ const BoundaryServiceArea = ({ address, mapboxToken, boundaryType, onDataChange 
 const CustomDrawServiceArea = ({ address, mapboxToken, onDataChange }) => {
   const [area, setArea] = useState(0);
   const mapContainer = useRef(null);
+  const mapRef = useRef(null);
+  const pointsRef = useRef([]);
+  const polygonRef = useRef(false);
 
   useEffect(() => {
     if (!mapboxToken || !address?.latitude || !address?.longitude) return;
@@ -585,6 +590,8 @@ const CustomDrawServiceArea = ({ address, mapboxToken, onDataChange }) => {
           center: [address.longitude, address.latitude],
           zoom: 10,
         });
+
+        mapRef.current = map;
 
         map.on('load', () => {
           // Add marker
@@ -610,77 +617,9 @@ const CustomDrawServiceArea = ({ address, mapboxToken, onDataChange }) => {
             onRemove: function() {}
           }, 'top-left');
 
-          // Simple polygon drawing
-          let points = [];
-          let polygon = null;
-
-          map.on('click', (e) => {
-            points.push([e.lngLat.lng, e.lngLat.lat]);
-            
-            if (points.length >= 3) {
-              if (polygon) {
-                map.removeLayer('polygon-fill');
-                map.removeLayer('polygon-border');
-                map.removeSource('polygon');
-              }
-
-              const coords = [...points, points[0]];
-              
-              map.addSource('polygon', {
-                type: 'geojson',
-                data: {
-                  type: 'Feature',
-                  geometry: {
-                    type: 'Polygon',
-                    coordinates: [coords]
-                  }
-                }
-              });
-
-              map.addLayer({
-                id: 'polygon-fill',
-                type: 'fill',
-                source: 'polygon',
-                paint: {
-                  'fill-color': '#8b5cf6',
-                  'fill-opacity': 0.2
-                }
-              });
-
-              map.addLayer({
-                id: 'polygon-border',
-                type: 'line',
-                source: 'polygon',
-                paint: {
-                  'line-color': '#8b5cf6',
-                  'line-width': 2
-                }
-              });
-
-              polygon = true;
-              
-              // Calculate area (simplified)
-              const calculatedArea = Math.abs(coords.reduce((acc, coord, i) => {
-                const next = coords[i + 1] || coords[0];
-                return acc + (coord[0] * next[1] - next[0] * coord[1]);
-              }, 0) / 2) * 12391399903;
-              
-              setArea(calculatedArea);
-              onDataChange({
-                type: 'custom_draw',
-                polygon: coords,
-                area: calculatedArea
-              });
-            }
-          });
-
-          map.on('dblclick', (e) => {
-            e.preventDefault();
-            if (points.length >= 3) {
-              // Finalize polygon
-              map.doubleClickZoom.enable();
-            }
-          });
+          // Handle clicks for drawing polygon
+          map.on('click', handleMapClick);
+          map.on('dblclick', handleDoubleClick);
         });
 
       } catch (error) {
@@ -691,16 +630,133 @@ const CustomDrawServiceArea = ({ address, mapboxToken, onDataChange }) => {
     initMap();
 
     return () => {
-      if (mapContainer.current) mapContainer.current.innerHTML = '';
+      if (mapRef.current) {
+        mapRef.current.off('click', handleMapClick);
+        mapRef.current.off('dblclick', handleDoubleClick);
+        mapRef.current.remove();
+      }
+      if (mapContainer.current) {
+        mapContainer.current.innerHTML = '';
+      }
     };
-  }, [mapboxToken, address, onDataChange]);
+  }, [mapboxToken, address]);
+
+  const handleMapClick = (e) => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    pointsRef.current.push([e.lngLat.lng, e.lngLat.lat]);
+    
+    if (pointsRef.current.length >= 3) {
+      if (polygonRef.current) {
+        map.removeLayer('polygon-fill');
+        map.removeLayer('polygon-border');
+        map.removeSource('polygon');
+      }
+
+      const coords = [...pointsRef.current, pointsRef.current[0]];
+      
+      map.addSource('polygon', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: {
+            type: 'Polygon',
+            coordinates: [coords]
+          }
+        }
+      });
+
+      map.addLayer({
+        id: 'polygon-fill',
+        type: 'fill',
+        source: 'polygon',
+        paint: {
+          'fill-color': '#8b5cf6',
+          'fill-opacity': 0.2
+        }
+      });
+
+      map.addLayer({
+        id: 'polygon-border',
+        type: 'line',
+        source: 'polygon',
+        paint: {
+          'line-color': '#8b5cf6',
+          'line-width': 2
+        }
+      });
+
+      polygonRef.current = true;
+      
+      // Calculate area (simplified)
+      const calculatedArea = Math.abs(coords.reduce((acc, coord, i) => {
+        const next = coords[i + 1] || coords[0];
+        return acc + (coord[0] * next[1] - next[0] * coord[1]);
+      }, 0) / 2) * 12391399903;
+      
+      setArea(calculatedArea);
+      onDataChange({
+        type: 'custom_draw',
+        polygon: coords,
+        area: calculatedArea
+      });
+    }
+  };
+
+  const handleDoubleClick = (e) => {
+    e.preventDefault();
+    if (pointsRef.current.length >= 3) {
+      mapRef.current?.doubleClickZoom.enable();
+    }
+  };
+
+  const clearDrawing = () => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Clear the polygon from the map
+    if (polygonRef.current) {
+      map.removeLayer('polygon-fill');
+      map.removeLayer('polygon-border');
+      map.removeSource('polygon');
+      polygonRef.current = false;
+    }
+
+    // Reset the points array
+    pointsRef.current = [];
+    
+    // Reset the area
+    setArea(0);
+    
+    // Notify parent component
+    onDataChange({
+      type: 'custom_draw',
+      polygon: null,
+      area: 0
+    });
+  };
 
   return (
     <div>
       <div className="mb-4">
-        <h3 className="text-lg font-semibold text-secondary-900 mb-2">
-          Draw Custom Service Area
-        </h3>
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-lg font-semibold text-secondary-900">
+            Draw Custom Service Area
+          </h3>
+          {polygonRef.current && (
+            <button
+              type="button"
+              onClick={clearDrawing}
+              className="px-3 py-1 text-sm text-red-600 hover:text-red-700 
+                       border border-red-300 hover:border-red-400 
+                       rounded-md bg-white hover:bg-red-50 
+                       transition-colors duration-200"
+            >
+              Clear Drawing
+            </button>
+          )}
+        </div>
         <p className="text-sm text-secondary-600 mb-4">
           Click points on the map to draw your service area polygon.
         </p>
