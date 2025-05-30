@@ -85,4 +85,26 @@ api.interceptors.response.use(
   }
 );
 
+api.interceptors.request.use(request => {
+  console.log('API Request:', {
+    method: request.method,
+    url: request.url,
+    data: request.data,
+    headers: request.headers
+  });
+  return request;
+});
+
+api.interceptors.response.use(
+  response => response,
+  error => {
+    console.error('API Error:', {
+      status: error.response?.status,
+      url: error.config?.url,
+      data: error.response?.data
+    });
+    return Promise.reject(error);
+  }
+);
+
 export default api;

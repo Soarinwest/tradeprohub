@@ -8,23 +8,25 @@ import { availabilityStepSchema } from '../../utils/validation';
  * Allows users to set their working days and hours
  */
 const AvailabilityStep = ({ 
-  data = { 
-    availability_schedule: {},
-    available_immediately: true,
-    start_date: '' 
-  }, 
-  onComplete,
+  data = {}, 
+  updateData,
+  onNext,
   onPrev 
 }) => {
   // Initialize default schedule
-  const defaultSchedule = {
-    monday: { enabled: false, start: '09:00', end: '17:00' },
-    tuesday: { enabled: false, start: '09:00', end: '17:00' },
-    wednesday: { enabled: false, start: '09:00', end: '17:00' },
-    thursday: { enabled: false, start: '09:00', end: '17:00' },
-    friday: { enabled: false, start: '09:00', end: '17:00' },
-    saturday: { enabled: false, start: '09:00', end: '17:00' },
-    sunday: { enabled: false, start: '09:00', end: '17:00' }
+  const getDefaultSchedule = () => {
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const schedule = {};
+    
+    days.forEach(day => {
+      schedule[day] = {
+        enabled: day !== 'saturday' && day !== 'sunday',
+        start: '09:00',
+        end: '17:00'
+      };
+    });
+    
+    return schedule;
   };
 
   const days = [
@@ -46,6 +48,9 @@ const AvailabilityStep = ({
     }
   }
 
+  // Extract existing schedule data from the availability object
+  const existingSchedule = data.availability?.availability_schedule || getDefaultSchedule();
+  
   const {
     register,
     handleSubmit,
@@ -55,16 +60,23 @@ const AvailabilityStep = ({
   } = useForm({
     resolver: yupResolver(availabilityStepSchema),
     defaultValues: {
-      schedule: data.availability_schedule || defaultSchedule,
-      available_immediately: data.available_immediately ?? true,
-      start_date: data.start_date || ''
+      schedule: existingSchedule,
+      available_immediately: data.availability?.available_immediately ?? true,
+      start_date: data.availability?.start_date || '',
+      custom_hours: false,
+      business_hours: {
+        start: '09:00',
+        end: '17:00'
+      }
     }
   });
 
-  const watchedSchedule = watch('schedule') || defaultSchedule;
+  const watchedSchedule = watch('schedule');
+  const watchedAvailableImmediately = watch('available_immediately');
 
   // Format time for display
   function formatTime(time) {
+    if (!time) return '';
     const [hour, minute] = time.split(':').map(Number);
     const period = hour >= 12 ? 'PM' : 'AM';
     const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
@@ -73,19 +85,19 @@ const AvailabilityStep = ({
 
   // Toggle day enabled/disabled
   const toggleDay = (dayKey) => {
-    const currentValue = watchedSchedule[dayKey].enabled;
-    setValue(`schedule.${dayKey}.enabled`, !currentValue);
+    const currentSchedule = watchedSchedule[dayKey] || { enabled: false, start: '09:00', end: '17:00' };
+    setValue(`schedule.${dayKey}.enabled`, !currentSchedule.enabled);
   };
 
   // Apply same hours to all enabled days
   const applyToAllDays = () => {
-    const firstEnabledDay = days.find(day => watchedSchedule[day.key].enabled);
+    const firstEnabledDay = days.find(day => watchedSchedule[day.key]?.enabled);
     if (!firstEnabledDay) return;
 
     const { start, end } = watchedSchedule[firstEnabledDay.key];
     
     days.forEach(day => {
-      if (watchedSchedule[day.key].enabled) {
+      if (watchedSchedule[day.key]?.enabled) {
         setValue(`schedule.${day.key}.start`, start);
         setValue(`schedule.${day.key}.end`, end);
       }
@@ -95,27 +107,38 @@ const AvailabilityStep = ({
   // Copy hours from one day to another
   const copyHours = (fromDay, toDay) => {
     const fromSchedule = watchedSchedule[fromDay];
-    setValue(`schedule.${toDay}.start`, fromSchedule.start);
-    setValue(`schedule.${toDay}.end`, fromSchedule.end);
+    if (!fromSchedule) return;
+    
+    setValue(`schedule.${toDay}.start`, fromSchedule.start || '09:00');
+    setValue(`schedule.${toDay}.end`, fromSchedule.end || '17:00');
     setValue(`schedule.${toDay}.enabled`, true);
   };
 
   const onSubmit = (formData) => {
     console.log('AvailabilityStep - Submitting data:', formData);
     
-    if (onComplete) {
-      try {
-        onComplete(formData, 'availability');
-      } catch (error) {
-        console.error('Error in AvailabilityStep submission:', error);
-      }
-    } else {
-      console.warn('AvailabilityStep - onComplete prop is not defined');
-    }
+    // Transform the schedule to match backend expectations
+    const transformedSchedule = {};
+    Object.entries(formData.schedule).forEach(([day, data]) => {
+      transformedSchedule[day] = {
+        enabled: data.enabled || false,
+        start_time: data.start || '09:00',  // Transform 'start' to 'start_time'
+        end_time: data.end || '17:00'       // Transform 'end' to 'end_time'
+      };
+    });
+    
+    const availabilityData = {
+      availability_schedule: transformedSchedule,
+      available_immediately: formData.available_immediately,
+      start_date: formData.start_date || null
+    };
+    
+    updateData('availability', availabilityData);
+    onNext();
   };
 
   // Safe check for enabled days
-  const hasEnabledDays = Object.values(watchedSchedule).some(day => day?.enabled === true);
+  const hasEnabledDays = watchedSchedule && Object.values(watchedSchedule).some(day => day?.enabled === true);
 
   return (
     <div className="wizard-step">
@@ -205,9 +228,8 @@ const AvailabilityStep = ({
         {/* Weekly Schedule */}
         <div className="space-y-4">
           {days.map((day, index) => {
-            const isEnabled = watchedSchedule[day.key].enabled;
-            const startTime = watchedSchedule[day.key].start;
-            const endTime = watchedSchedule[day.key].end;
+            const daySchedule = watchedSchedule[day.key] || { enabled: false, start: '09:00', end: '17:00' };
+            const isEnabled = daySchedule.enabled || false;
 
             return (
               <div
@@ -245,6 +267,7 @@ const AvailabilityStep = ({
                       <select
                         {...register(`schedule.${day.key}.start`)}
                         className="input-field py-2 px-3 text-sm"
+                        defaultValue={daySchedule.start || '09:00'}
                       >
                         {timeSlots.map(slot => (
                           <option key={slot.value} value={slot.value}>
@@ -258,6 +281,7 @@ const AvailabilityStep = ({
                       <select
                         {...register(`schedule.${day.key}.end`)}
                         className="input-field py-2 px-3 text-sm"
+                        defaultValue={daySchedule.end || '17:00'}
                       >
                         {timeSlots.map(slot => (
                           <option key={slot.value} value={slot.value}>
@@ -266,7 +290,7 @@ const AvailabilityStep = ({
                         ))}
                       </select>
 
-                      {index > 0 && (
+                      {index > 0 && watchedSchedule[days[index - 1].key]?.enabled && (
                         <button
                           type="button"
                           onClick={() => copyHours(days[index - 1].key, day.key)}
@@ -295,6 +319,54 @@ const AvailabilityStep = ({
           </div>
         )}
 
+        {/* Availability Options */}
+        <div className="bg-secondary-50 rounded-lg p-6 border border-secondary-200">
+          <h3 className="text-lg font-semibold text-secondary-900 mb-4">
+            When can you start?
+          </h3>
+          
+          <div className="space-y-3">
+            <label className="flex items-center">
+              <input
+                type="radio"
+                {...register('available_immediately')}
+                value={true}
+                defaultChecked={watchedAvailableImmediately === true}
+                className="mr-3"
+              />
+              <span className="text-sm">I'm available immediately</span>
+            </label>
+            
+            <label className="flex items-center">
+              <input
+                type="radio"
+                {...register('available_immediately')}
+                value={false}
+                defaultChecked={watchedAvailableImmediately === false}
+                className="mr-3"
+              />
+              <span className="text-sm">I'll be available starting from a specific date</span>
+            </label>
+          </div>
+          
+          {watchedAvailableImmediately === false && (
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-secondary-700 mb-2">
+                Start Date
+              </label>
+              <input
+                type="date"
+                {...register('start_date')}
+                className="input-field max-w-xs"
+                min={new Date().toISOString().split('T')[0]}
+              />
+              {errors.start_date && (
+                <p className="text-red-600 text-sm mt-1">{errors.start_date.message}</p>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Schedule Summary */}
         {hasEnabledDays && (
           <div className="bg-blue-50 rounded-lg p-6 border border-blue-200">
@@ -302,14 +374,17 @@ const AvailabilityStep = ({
               Your Schedule Summary
             </h3>
             <div className="grid md:grid-cols-2 gap-4">
-              {days.filter(day => watchedSchedule[day.key].enabled).map(day => (
-                <div key={day.key} className="flex justify-between">
-                  <span className="font-medium text-secondary-700">{day.label}:</span>
-                  <span className="text-secondary-900">
-                    {formatTime(watchedSchedule[day.key].start)} - {formatTime(watchedSchedule[day.key].end)}
-                  </span>
-                </div>
-              ))}
+              {days.filter(day => watchedSchedule[day.key]?.enabled).map(day => {
+                const daySchedule = watchedSchedule[day.key];
+                return (
+                  <div key={day.key} className="flex justify-between">
+                    <span className="font-medium text-secondary-700">{day.label}:</span>
+                    <span className="text-secondary-900">
+                      {formatTime(daySchedule.start)} - {formatTime(daySchedule.end)}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
             <div className="mt-4 p-3 bg-blue-100 rounded">
               <p className="text-sm text-blue-800">
@@ -341,23 +416,6 @@ const AvailabilityStep = ({
       </form>
     </div>
   );
-};
-
-// Helper function to get default schedule
-const defaultSchedule = {
-  monday: { enabled: false, start: '09:00', end: '17:00' },
-  tuesday: { enabled: false, start: '09:00', end: '17:00' },
-  wednesday: { enabled: false, start: '09:00', end: '17:00' },
-  thursday: { enabled: false, start: '09:00', end: '17:00' },
-  friday: { enabled: false, start: '09:00', end: '17:00' },
-  saturday: { enabled: false, start: '09:00', end: '17:00' },
-  sunday: { enabled: false, start: '09:00', end: '17:00' }
-};
-
-// Add default business hours
-const defaultBusinessHours = {
-  start: '09:00',
-  end: '17:00'
 };
 
 export default AvailabilityStep;

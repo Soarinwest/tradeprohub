@@ -7,11 +7,12 @@ import React from 'react';
 const ReviewStep = ({ 
   data = {
     business: {},
-    location: {},
+    address: {},
+    serviceArea: {},
     pricing: {},
     media: {},
     availability: {
-      availability_schedule: {} // This was missing and causing issues
+      availability_schedule: {}
     }
   }, 
   onPrev, 
@@ -20,6 +21,7 @@ const ReviewStep = ({
 }) => {
   // Format phone number for display
   const formatPhone = (phone) => {
+    if (!phone) return 'Not provided';
     const cleaned = phone.replace(/\D/g, '');
     const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
     if (match) {
@@ -30,6 +32,7 @@ const ReviewStep = ({
 
   // Format time for display
   const formatTime = (time) => {
+    if (!time) return '';
     const [hour, minute] = time.split(':').map(Number);
     const period = hour >= 12 ? 'PM' : 'AM';
     const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
@@ -39,37 +42,53 @@ const ReviewStep = ({
   // Get working days summary
   const getWorkingDaysSummary = () => {
     const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-    const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const dayLabels = {
+      monday: 'Monday',
+      tuesday: 'Tuesday',
+      wednesday: 'Wednesday',
+      thursday: 'Thursday',
+      friday: 'Friday',
+      saturday: 'Saturday',
+      sunday: 'Sunday'
+    };
     
     if (!data.availability?.availability_schedule) {
       return [];
     }
     
     const workingDays = days
-      .map((day, index) => ({
+      .filter(day => data.availability.availability_schedule[day]?.enabled)
+      .map(day => ({
         day,
-        label: dayLabels[index],
-        schedule: data.availability.availability_schedule[day] || { enabled: false }
-      }))
-      .filter(item => item.schedule.enabled);
+        label: dayLabels[day],
+        schedule: data.availability.availability_schedule[day]
+      }));
 
     return workingDays;
   };
 
   const workingDays = getWorkingDaysSummary();
 
-  // Add safety checks for nested data
-  const address = data.location || {};
-  const pricing = data.pricing || {};
-  const media = data.media || {};
-
   const handleSubmit = () => {
     // Validate required sections
-    const requiredSections = ['business', 'location', 'pricing', 'availability'];
-    const missingSections = requiredSections.filter(section => !data[section] || Object.keys(data[section]).length === 0);
+    const requiredSections = ['business', 'address', 'serviceArea', 'pricing', 'availability'];
+    const missingSections = [];
+    
+    requiredSections.forEach(section => {
+      if (!data[section] || Object.keys(data[section]).length === 0) {
+        missingSections.push(section);
+      }
+    });
 
     if (missingSections.length > 0) {
       alert(`Please complete the following sections: ${missingSections.join(', ')}`);
+      return;
+    }
+
+    // Check if terms checkbox is checked
+    const termsCheckbox = document.getElementById('terms');
+    if (!termsCheckbox || !termsCheckbox.checked) {
+      alert('Please confirm that all information provided is accurate.');
       return;
     }
 
@@ -97,27 +116,20 @@ const ReviewStep = ({
               </svg>
               Business Information
             </h3>
-            <button
-              type="button"
-              onClick={() => onPrev()}
-              className="text-primary-600 hover:text-primary-700 text-sm font-medium"
-            >
-              Edit
-            </button>
           </div>
           
           <div className="grid md:grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-secondary-600">Business Name</p>
-              <p className="font-medium text-secondary-900">{data.business.name || 'Not provided'}</p>
+              <p className="font-medium text-secondary-900">{data.business?.name || 'Not provided'}</p>
             </div>
             <div>
               <p className="text-sm text-secondary-600">Phone</p>
-              <p className="font-medium text-secondary-900">{formatPhone(data.business.phone) || 'Not provided'}</p>
+              <p className="font-medium text-secondary-900">{formatPhone(data.business?.phone)}</p>
             </div>
             <div>
               <p className="text-sm text-secondary-600">Email</p>
-              <p className="font-medium text-secondary-900">{data.business.email || 'Not provided'}</p>
+              <p className="font-medium text-secondary-900">{data.business?.email || 'Not provided'}</p>
             </div>
           </div>
         </div>
@@ -132,29 +144,33 @@ const ReviewStep = ({
               </svg>
               Location & Service Area
             </h3>
-            <button
-              type="button"
-              onClick={() => onPrev()}
-              className="text-primary-600 hover:text-primary-700 text-sm font-medium"
-            >
-              Edit
-            </button>
           </div>
           
           <div className="space-y-3">
             <div>
               <p className="text-sm text-secondary-600">Address</p>
               <p className="font-medium text-secondary-900">
-                {address.address_line1}
-                {address.address_line2 && <>, {address.address_line2}</>}
+                {data.address?.address_line1 || 'Not provided'}
+                {data.address?.address_line2 && <>, {data.address.address_line2}</>}
               </p>
-              <p className="font-medium text-secondary-900">
-                {address.city}, {address.state} {address.zip_code}
-              </p>
+              {data.address?.city && (
+                <p className="font-medium text-secondary-900">
+                  {data.address.city}, {data.address.state} {data.address.zip_code}
+                </p>
+              )}
             </div>
             <div>
-              <p className="text-sm text-secondary-600">Service Radius</p>
-              <p className="font-medium text-secondary-900">{address.service_radius} miles</p>
+              <p className="text-sm text-secondary-600">Service Area</p>
+              <p className="font-medium text-secondary-900">
+                {data.serviceArea?.type === 'radius' 
+                  ? `${data.serviceArea.radius} mile radius` 
+                  : data.serviceArea?.type || 'Not specified'}
+              </p>
+              {data.serviceArea?.willing_to_travel_outside && (
+                <p className="text-sm text-green-600 mt-1">
+                  ✓ Willing to travel outside service area
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -168,37 +184,30 @@ const ReviewStep = ({
               </svg>
               Pricing
             </h3>
-            <button
-              type="button"
-              onClick={() => onPrev()}
-              className="text-primary-600 hover:text-primary-700 text-sm font-medium"
-            >
-              Edit
-            </button>
           </div>
           
           <div>
             <p className="text-sm text-secondary-600">Pricing Mode</p>
             <p className="font-medium text-secondary-900 capitalize mb-3">
-              {pricing.mode === 'hourly' ? 'Hourly Rate' : 'Project Quotes'}
+              {data.pricing?.mode === 'hourly' ? 'Hourly Rate' : 'Project Quotes'}
             </p>
             
-            {pricing.mode === 'hourly' ? (
+            {data.pricing?.mode === 'hourly' ? (
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-secondary-600">Hourly Rate:</span>
-                  <span className="font-medium text-secondary-900">${pricing.hourly_rate}/hour</span>
+                  <span className="font-medium text-secondary-900">${data.pricing.hourly_rate}/hour</span>
                 </div>
-                {pricing.minimum_charge && (
+                {data.pricing?.minimum_charge && (
                   <div className="flex justify-between">
                     <span className="text-secondary-600">Minimum Charge:</span>
-                    <span className="font-medium text-secondary-900">${pricing.minimum_charge}</span>
+                    <span className="font-medium text-secondary-900">${data.pricing.minimum_charge}</span>
                   </div>
                 )}
               </div>
             ) : (
               <div className="space-y-3">
-                {pricing.quote_packages?.map((pkg, index) => (
+                {data.pricing?.quote_packages?.map((pkg, index) => (
                   <div key={index} className="bg-secondary-50 rounded p-3">
                     <div className="flex justify-between items-start">
                       <div>
@@ -223,33 +232,26 @@ const ReviewStep = ({
               </svg>
               Media & Certifications
             </h3>
-            <button
-              type="button"
-              onClick={() => onPrev()}
-              className="text-primary-600 hover:text-primary-700 text-sm font-medium"
-            >
-              Edit
-            </button>
           </div>
           
           <div className="space-y-3">
             <div>
               <p className="text-sm text-secondary-600">Profile Photo</p>
               <p className="font-medium text-secondary-900">
-                {media.profile_photo ? '✓ Uploaded' : '✗ Not uploaded'}
+                {data.media?.profile_photo ? '✓ Uploaded' : '✗ Not uploaded'}
               </p>
             </div>
             <div>
               <p className="text-sm text-secondary-600">Gallery Images</p>
               <p className="font-medium text-secondary-900">
-                {media.gallery_images?.length || 0} photos uploaded
+                {data.media?.gallery_images?.length || 0} photos uploaded
               </p>
             </div>
-            {media.certifications && (
+            {data.media?.certifications && (
               <div>
                 <p className="text-sm text-secondary-600">Certifications</p>
                 <p className="font-medium text-secondary-900 whitespace-pre-line">
-                  {media.certifications}
+                  {data.media.certifications}
                 </p>
               </div>
             )}
@@ -265,25 +267,35 @@ const ReviewStep = ({
               </svg>
               Availability
             </h3>
-            <button
-              type="button"
-              onClick={() => onPrev()}
-              className="text-primary-600 hover:text-primary-700 text-sm font-medium"
-            >
-              Edit
-            </button>
           </div>
           
-          <div className="grid md:grid-cols-2 gap-3">
-            {workingDays.map(({ label, schedule }) => (
-              <div key={label} className="flex justify-between">
-                <span className="text-secondary-600">{label}:</span>
-                <span className="font-medium text-secondary-900">
-                  {formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}
-                </span>
+          {workingDays.length > 0 ? (
+            <>
+              <div className="grid md:grid-cols-2 gap-3 mb-4">
+                {workingDays.map(({ label, schedule }) => (
+                  <div key={label} className="flex justify-between">
+                    <span className="text-secondary-600">{label}:</span>
+                    <span className="font-medium text-secondary-900">
+                      {formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+              
+              {data.availability?.available_immediately === false && data.availability?.start_date && (
+                <div className="mt-4 p-3 bg-amber-50 rounded">
+                  <p className="text-sm text-amber-800">
+                    <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Available starting from: {new Date(data.availability.start_date).toLocaleDateString()}
+                  </p>
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="text-secondary-600">No schedule set</p>
+          )}
         </div>
 
         {/* Submit Section */}
@@ -306,7 +318,6 @@ const ReviewStep = ({
                   type="checkbox"
                   id="terms"
                   className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
-                  required
                 />
                 <label htmlFor="terms" className="text-sm text-secondary-700">
                   I confirm that all information provided is accurate and up to date.
