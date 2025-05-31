@@ -18,6 +18,7 @@ import ErrorBoundary from '../components/ErrorBoundary';
  */
 const CreateProfile = () => {
   const [currentStep, setCurrentStep] = useState(1);
+  const [existingProfileId, setExistingProfileId] = useState(null);
   const [formData, setFormData] = useState({
     business: {},
     address: {},
@@ -49,8 +50,19 @@ const CreateProfile = () => {
     const loadProfile = async () => {
       try {
         const response = await api.get('/profiles/');
-        if (response.data && response.data.length > 0) {
-          const profile = response.data[0]; // Get first profile if it's an array
+        console.log('Profile response:', response.data);
+        
+        // Check if response contains profile data
+        let profile = null;
+        if (Array.isArray(response.data) && response.data.length > 0) {
+          profile = response.data[0];
+        } else if (response.data && !Array.isArray(response.data)) {
+          profile = response.data;
+        }
+        
+        if (profile && profile.id) {
+          setExistingProfileId(profile.id);
+          console.log('Found existing profile with ID:', profile.id);
           
           setFormData({
             business: {
@@ -105,14 +117,14 @@ const CreateProfile = () => {
   const nextStep = () => {
     if (currentStep < steps.length) {
       setCurrentStep(currentStep + 1);
-      window.scrollTo(0, 0); // Scroll to top when changing steps
+      window.scrollTo(0, 0);
     }
   };
 
   const prevStep = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
-      window.scrollTo(0, 0); // Scroll to top when changing steps
+      window.scrollTo(0, 0);
     }
   };
 
@@ -133,6 +145,7 @@ const CreateProfile = () => {
 
   const submitProfile = async () => {
     console.log('Submitting profile with data:', formData);
+    console.log('Existing profile ID:', existingProfileId);
     setSubmitting(true);
 
     try {
@@ -148,89 +161,90 @@ const CreateProfile = () => {
         city: formData.address.city,
         state: formData.address.state,
         zip_code: formData.address.zip_code,
-        latitude: formData.address.latitude ? parseFloat(formData.address.latitude) : null,
-        longitude: formData.address.longitude ? parseFloat(formData.address.longitude) : null,
+        latitude: parseFloat(formData.address.latitude) || null,
+        longitude: parseFloat(formData.address.longitude) || null,
         
         // Service Area
-        service_area_type: formData.serviceArea.type || 'radius',
         service_radius: formData.serviceArea.type === 'radius' 
           ? parseInt(formData.serviceArea.radius) 
-          : null,
-        service_area_boundary: formData.serviceArea.boundary || null,
-        willing_to_travel_outside: Boolean(formData.serviceArea.willing_to_travel_outside),
+          : 25, // Default radius even for non-radius types
+        service_area_type: formData.serviceArea.type || 'radius',
+        willing_to_travel_outside: formData.serviceArea.willing_to_travel_outside || false,
         
         // Pricing
         pricing_mode: formData.pricing.mode || 'hourly',
-        hourly_rate: formData.pricing.hourly_rate ? parseFloat(formData.pricing.hourly_rate) : null,
-        minimum_charge: formData.pricing.minimum_charge ? parseFloat(formData.pricing.minimum_charge) : null,
-        quote_packages: Array.isArray(formData.pricing.quote_packages) ? formData.pricing.quote_packages : [],
+        hourly_rate: formData.pricing.mode === 'hourly' 
+          ? parseFloat(formData.pricing.hourly_rate) || null 
+          : null,
+        minimum_charge: parseFloat(formData.pricing.minimum_charge) || null,
+        quote_packages: formData.pricing.quote_packages || [],
         
         // Media
         certifications: formData.media.certifications || '',
+        // Note: profile_photo and gallery_images would need to be handled separately
+        // as file uploads in a real implementation
         
         // Availability
         availability_schedule: formData.availability.availability_schedule || {},
-        available_immediately: Boolean(formData.availability.available_immediately),
+        available_immediately: formData.availability.available_immediately ?? true,
         start_date: formData.availability.start_date || null
       };
 
-      console.log('Sanitized payload:', payload);
+      // Remove null values to avoid backend validation issues
+      const cleanPayload = Object.entries(payload).reduce((acc, [key, value]) => {
+        if (value !== null && value !== undefined) {
+          acc[key] = value;
+        }
+        return acc;
+      }, {});
 
-      // First validate the payload on frontend
-      const requiredFields = [
-        'business_name',
-        'business_phone',
-        'business_email',
-        'address_line1',
-        'city',
-        'state',
-        'zip_code'
-      ];
+      console.log('Sending payload to API:', cleanPayload);
 
-      const missingFields = requiredFields.filter(field => !payload[field]);
-      if (missingFields.length > 0) {
-        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+      let response;
+      if (existingProfileId) {
+        // Update existing profile
+        console.log(`Updating existing profile ${existingProfileId}`);
+        response = await api.put(`/profiles/${existingProfileId}/`, cleanPayload);
+      } else {
+        // Create new profile
+        console.log('Creating new profile');
+        response = await api.post('/profiles/', cleanPayload);
       }
-
-      const response = await api.post('/profiles/', payload);
+      
       console.log('API Response:', response);
 
-      if (response.status === 201 || response.status === 200) {
+      if (response.status === 200 || response.status === 201) {
         navigate('/dashboard', { 
-          state: { message: 'Profile created successfully!' }
+          state: { message: existingProfileId ? 'Profile updated successfully!' : 'Profile created successfully!' }
         });
       }
     } catch (error) {
       console.error('Profile submission error:', error);
       
-      let errorMessage = 'Failed to save profile: ';
-      
-      if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
+      // Log more detailed error information
+      if (error.response?.data) {
         console.error('Error response data:', error.response.data);
         console.error('Error response status:', error.response.status);
         console.error('Error response headers:', error.response.headers);
-        
-        if (error.response.data) {
-          if (typeof error.response.data === 'object') {
-            errorMessage += Object.entries(error.response.data)
-              .map(([field, msg]) => `${field}: ${msg}`)
-              .join('\n');
-          } else {
-            errorMessage += error.response.data;
+      }
+      
+      let errorMessage = 'Failed to save profile';
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          // If it's an HTML error page, try to extract the error message
+          const match = error.response.data.match(/<pre class="exception_value">(.*?)<\/pre>/);
+          if (match) {
+            errorMessage = `Failed to save profile: ${match[1]}`;
           }
-        } else {
-          errorMessage += `Server error (${error.response.status})`;
+        } else if (typeof error.response.data === 'object') {
+          // Handle field-specific errors
+          const fieldErrors = Object.entries(error.response.data)
+            .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
+            .join('\n');
+          errorMessage = `Failed to save profile:\n${fieldErrors}`;
         }
-      } else if (error.request) {
-        // The request was made but no response was received
-        console.error('Error request:', error.request);
-        errorMessage += 'No response received from server';
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        console.error('Error message:', error.message);
-        errorMessage += error.message;
+      } else if (error.message) {
+        errorMessage = `Failed to save profile: ${error.message}`;
       }
       
       alert(errorMessage);
@@ -257,7 +271,7 @@ const CreateProfile = () => {
         {/* Progress Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-secondary-900 mb-6">
-            Create Your Business Profile
+            {existingProfileId ? 'Update Your Business Profile' : 'Create Your Business Profile'}
           </h1>
           
           {/* Step Progress */}
