@@ -9,8 +9,14 @@ from decouple import config, Csv
 # Build paths inside the project this way: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-os.environ['GDAL_LIBRARY_PATH'] = config('GDAL_LIBRARY_PATH')
-os.environ['GEOS_LIBRARY_PATH'] = config('GEOS_LIBRARY_PATH')
+GDAL_LIBRARY_PATH = config('GDAL_LIBRARY_PATH', default=None)
+GEOS_LIBRARY_PATH = config('GEOS_LIBRARY_PATH', default=None)
+
+if GDAL_LIBRARY_PATH:
+    os.environ['GDAL_LIBRARY_PATH'] = GDAL_LIBRARY_PATH
+
+if GEOS_LIBRARY_PATH:
+    os.environ['GEOS_LIBRARY_PATH'] = GEOS_LIBRARY_PATH
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-your-secret-key-here')
@@ -58,7 +64,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'tradepro_backend.urls'
+ROOT_URLCONF = 'tradepro_hub.urls'
 
 TEMPLATES = [
     {
@@ -78,7 +84,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'tradepro_backend.wsgi.application'
+WSGI_APPLICATION = 'tradepro_hub.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
