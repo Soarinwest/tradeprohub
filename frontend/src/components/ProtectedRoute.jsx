@@ -32,6 +32,14 @@ const ProtectedRoute = ({
     hasPermission,
     refreshUser 
   } = useAuth();
+
+  console.log("Auth status in ProtectedRoute:", {
+  loading,
+  isAuthenticated,
+  isEmailVerified,
+  needsPasswordChange,
+  profileCompleted,
+  });
   
   const location = useLocation();
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -63,6 +71,22 @@ const ProtectedRoute = ({
           <p className="text-secondary-600">Please wait while we verify your access.</p>
         </div>
       </div>
+    );
+  }
+  
+  // Global redirect to profile wizard if profile is incomplete and not already there
+  if (
+    isAuthenticated &&
+    isEmailVerified &&
+    !profileCompleted &&
+    location.pathname !== '/create-profile'
+  ) {
+    return (
+      <Navigate 
+        to="/create-profile" 
+        state={{ from: location, required: true }} 
+        replace 
+      />
     );
   }
 

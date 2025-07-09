@@ -141,6 +141,9 @@ export const authAPI = {
   
   // Email verification
   verifyEmail: (token) => api.post('/verify-email/', { token }),
+
+  // Email re-verification
+  resendVerification: (email) => api.post('/users/resend-verification/', { email }),
   
   // Change password (authenticated)
   changePassword: (data) => api.post('/change-password/', data),

@@ -37,6 +37,27 @@ class EmailBackend(ModelBackend):
         if user.check_password(password):
             return user
         return None
+    
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def resend_verification_email(request):
+    user = request.user
+
+    if user.email_verified:
+        return Response({'error': 'Your email is already verified.'}, status=400)
+
+    token = generate_verification_token(user)
+    verify_url = f"http://localhost:5173/verify-email?token={token}"
+
+    send_mail(
+        'Verify Your Email',
+        f'Click this link to verify your account: {verify_url}',
+        'noreply@tradeprohub.com',
+        [user.email],
+        fail_silently=False,
+    )
+
+    return Response({'success': True, 'message': 'Verification email sent.'})
 
 
 def get_client_ip(request):

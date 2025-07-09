@@ -74,11 +74,25 @@ const VerifyEmail = () => {
 
   const handleResendVerification = async () => {
     try {
-      // This would need to be implemented in the backend
-      // For now, show a message
-      setMessage('Please contact support to resend verification email.');
+      const res = await fetch('http://localhost:8000/api/users/resend-verification/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: user?.email || 'soren.donisvitch@gmail.com' // fallback for dev
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setMessage('✅ Verification email resent successfully. Please check your inbox or the terminal log.');
+      } else {
+        setMessage(data.error || '❌ Failed to resend verification email.');
+      }
     } catch (error) {
-      setMessage('Failed to resend verification email.');
+      setMessage('❌ An error occurred while trying to resend the verification email.');
     }
   };
 

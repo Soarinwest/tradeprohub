@@ -301,12 +301,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const isAuthenticated = !!token && !!user;
+
   const value = {
     // State
     user,
     token,
     loading,
-    isAuthenticated: !!token && !!user,
+    isAuthenticated,
     
     // Basic auth functions (backward compatibility)
     login,

@@ -6,7 +6,8 @@ from .views import (
     RegisterView, LoginView, logout_view,
     PasswordResetRequestView, PasswordResetConfirmView,
     EmailVerificationView, PasswordChangeView,
-    UserProfileView, check_auth_status
+    UserProfileView, check_auth_status,
+    resend_verification_email
 )
 
 urlpatterns = [
@@ -26,6 +27,7 @@ urlpatterns = [
     
     # Email verification
     path('verify-email/', EmailVerificationView.as_view(), name='email_verification'),
+    path('resend-verification/', resend_verification_email, name='resend_verification'),
     
     # User profile management
     path('profile/', UserProfileView.as_view(), name='user_profile'),
