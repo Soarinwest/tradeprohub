@@ -191,7 +191,7 @@ class UserLoginSerializer(serializers.Serializer):
                 })
 
             # Authenticate user
-            user = authenticate(username=user.username, password=password)
+            user = authenticate(request=self.context.get('request'), email=email, password=password)
             
             if user:
                 # Reset failed login attempts on successful authentication

@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.views import TokenObtainPairView
+from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
 from django.conf import settings
@@ -22,6 +22,21 @@ import logging
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
+
+class EmailBackend(ModelBackend):
+    """
+    Authenticate using email instead of username.
+    """
+    def authenticate(self, request, username=None, password=None, **kwargs):
+        UserModel = get_user_model()
+        email = kwargs.get('email', username)
+        try:
+            user = UserModel.objects.get(email=email)
+        except UserModel.DoesNotExist:
+            return None
+        if user.check_password(password):
+            return user
+        return None
 
 
 def get_client_ip(request):
@@ -143,7 +158,7 @@ class RegisterView(generics.CreateAPIView):
             logger.error(f'Failed to send verification email to {user.email}: {str(e)}')
 
 
-class LoginView(TokenObtainPairView):
+class LoginView(generics.GenericAPIView):
     """
     Enhanced login endpoint with security features
     POST /api/v1/login/
@@ -213,10 +228,18 @@ class LoginView(TokenObtainPairView):
                     details={'email': email, 'error': str(e)}
                 )
             
+            # Return appropriate error response
+            if hasattr(serializer, 'errors') and serializer.errors:
+                return Response({
+                    'success': False,
+                    'error': 'Login failed',
+                    'details': serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
             return Response({
                 'success': False,
                 'error': 'Login failed',
-                'details': serializer.errors if hasattr(serializer, 'errors') else {'message': str(e)}
+                'message': str(e)
             }, status=status.HTTP_400_BAD_REQUEST)
 
 

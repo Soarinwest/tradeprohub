@@ -1,0 +1,166 @@
+INFO 2025-07-09 10:15:26,814 autoreload 7124 28176 Watching for file changes with StatReloader
+WARNING 2025-07-09 10:15:35,772 log 7124 28864 Not Found: /
+WARNING 2025-07-09 10:15:35,773 basehttp 7124 28864 "GET / HTTP/1.1" 404 2298
+WARNING 2025-07-09 10:15:35,829 log 7124 28864 Not Found: /favicon.ico
+WARNING 2025-07-09 10:15:35,830 basehttp 7124 28864 "GET /favicon.ico HTTP/1.1" 404 2349
+INFO 2025-07-09 10:15:49,540 basehttp 7124 28864 "GET /admin/ HTTP/1.1" 302 0
+ERROR 2025-07-09 10:15:49,623 log 7124 28864 Internal Server Error: /admin/login/
+Traceback (most recent call last):
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\utils\module_loading.py", line 30, in import_string
+    return cached_import(module_path, class_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\utils\module_loading.py", line 16, in cached_import
+    return getattr(module, class_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'users.views' has no attribute 'EmailBackend'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\utils\decorators.py", line 46, in _wrapper
+    return bound_method(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\views\decorators\cache.py", line 62, in _wrapper_view_func
+    response = view_func(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\contrib\admin\sites.py", line 422, in login
+    **self.each_context(request),
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\contrib\admin\sites.py", line 337, in each_context
+    "available_apps": self.get_app_list(request),
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\contrib\admin\sites.py", line 536, in get_app_list
+    app_dict = self._build_app_dict(request, app_label)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\contrib\admin\sites.py", line 478, in _build_app_dict
+    has_module_perms = model_admin.has_module_permission(request)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\contrib\admin\options.py", line 611, in has_module_permission
+    return request.user.has_module_perms(self.opts.app_label)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\contrib\auth\models.py", line 488, in has_module_perms
+    return _user_has_module_perms(self, module)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\contrib\auth\models.py", line 231, in _user_has_module_perms
+    for backend in auth.get_backends():
+                   ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\contrib\auth\__init__.py", line 38, in get_backends
+    return _get_backends(return_tuples=False)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\contrib\auth\__init__.py", line 27, in _get_backends
+    backend = load_backend(backend_path)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\contrib\auth\__init__.py", line 21, in load_backend
+    return import_string(path)()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\utils\module_loading.py", line 32, in import_string
+    raise ImportError(
+ImportError: Module "users.views" does not define a "EmailBackend" attribute/class
+ERROR 2025-07-09 10:15:49,627 basehttp 7124 28864 "GET /admin/login/?next=/admin/ HTTP/1.1" 500 139443
+INFO 2025-07-09 10:16:00,323 basehttp 7124 28864 "GET /admin/ HTTP/1.1" 302 0
+ERROR 2025-07-09 10:16:00,346 log 7124 28864 Internal Server Error: /admin/login/
+Traceback (most recent call last):
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\utils\module_loading.py", line 30, in import_string
+    return cached_import(module_path, class_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\utils\module_loading.py", line 16, in cached_import
+    return getattr(module, class_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'users.views' has no attribute 'EmailBackend'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\utils\decorators.py", line 46, in _wrapper
+    return bound_method(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\views\decorators\cache.py", line 62, in _wrapper_view_func
+    response = view_func(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\contrib\admin\sites.py", line 422, in login
+    **self.each_context(request),
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\contrib\admin\sites.py", line 337, in each_context
+    "available_apps": self.get_app_list(request),
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\contrib\admin\sites.py", line 536, in get_app_list
+    app_dict = self._build_app_dict(request, app_label)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\contrib\admin\sites.py", line 478, in _build_app_dict
+    has_module_perms = model_admin.has_module_permission(request)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\contrib\admin\options.py", line 611, in has_module_permission
+    return request.user.has_module_perms(self.opts.app_label)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\contrib\auth\models.py", line 488, in has_module_perms
+    return _user_has_module_perms(self, module)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\contrib\auth\models.py", line 231, in _user_has_module_perms
+    for backend in auth.get_backends():
+                   ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\contrib\auth\__init__.py", line 38, in get_backends
+    return _get_backends(return_tuples=False)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\contrib\auth\__init__.py", line 27, in _get_backends
+    backend = load_backend(backend_path)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\contrib\auth\__init__.py", line 21, in load_backend
+    return import_string(path)()
+           ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\soren\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\django\utils\module_loading.py", line 32, in import_string
+    raise ImportError(
+ImportError: Module "users.views" does not define a "EmailBackend" attribute/class
+ERROR 2025-07-09 10:16:00,350 basehttp 7124 28864 "GET /admin/login/?next=/admin/ HTTP/1.1" 500 139443
+INFO 2025-07-09 10:19:06,018 autoreload 7124 28176 C:\Users\soren\tradeprohub\backend\users\views.py changed, reloading.
+INFO 2025-07-09 10:19:06,933 autoreload 6028 27672 Watching for file changes with StatReloader
+INFO 2025-07-09 10:19:46,692 autoreload 6028 27672 C:\Users\soren\tradeprohub\backend\users\views.py changed, reloading.
+INFO 2025-07-09 10:19:47,596 autoreload 17496 5548 Watching for file changes with StatReloader
+INFO 2025-07-09 10:19:54,852 basehttp 17496 12020 "GET /admin/ HTTP/1.1" 302 0
+INFO 2025-07-09 10:19:54,903 basehttp 17496 12020 "GET /admin/login/?next=/admin/ HTTP/1.1" 200 4183
+INFO 2025-07-09 10:19:54,921 basehttp 17496 12020 "GET /static/admin/css/base.css HTTP/1.1" 304 0
+INFO 2025-07-09 10:19:54,922 basehttp 17496 15296 "GET /static/admin/css/nav_sidebar.css HTTP/1.1" 304 0
+INFO 2025-07-09 10:19:54,923 basehttp 17496 30812 "GET /static/admin/css/dark_mode.css HTTP/1.1" 304 0
+INFO 2025-07-09 10:19:54,923 basehttp 17496 14880 "GET /static/admin/css/login.css HTTP/1.1" 304 0
+INFO 2025-07-09 10:19:54,923 basehttp 17496 14272 "GET /static/admin/css/responsive.css HTTP/1.1" 304 0
+INFO 2025-07-09 10:19:54,925 basehttp 17496 26772 "GET /static/admin/js/theme.js HTTP/1.1" 304 0
+INFO 2025-07-09 10:19:54,925 basehttp 17496 30812 "GET /static/admin/js/nav_sidebar.js HTTP/1.1" 304 0
+INFO 2025-07-09 10:27:57,777 basehttp 17496 13680 "POST /admin/login/?next=/admin/ HTTP/1.1" 200 4341
+INFO 2025-07-09 10:32:11,130 basehttp 17496 13680 "POST /admin/login/?next=/admin/ HTTP/1.1" 302 0
+INFO 2025-07-09 10:32:11,229 basehttp 17496 13680 "GET /admin/ HTTP/1.1" 200 9986
+INFO 2025-07-09 10:32:11,241 basehttp 17496 13680 "GET /static/admin/css/dashboard.css HTTP/1.1" 304 0
+INFO 2025-07-09 10:32:11,263 basehttp 17496 13680 "GET /static/admin/img/icon-changelink.svg HTTP/1.1" 304 0
+INFO 2025-07-09 10:32:11,263 basehttp 17496 11308 "GET /static/admin/img/icon-viewlink.svg HTTP/1.1" 304 0
+INFO 2025-07-09 10:32:11,264 basehttp 17496 21976 "GET /static/admin/img/icon-addlink.svg HTTP/1.1" 304 0
+INFO 2025-07-09 10:35:09,921 basehttp 17496 24684 "OPTIONS /api/v1/login/ HTTP/1.1" 200 0
+WARNING 2025-07-09 10:35:10,348 log 17496 24684 Bad Request: /api/v1/login/
+WARNING 2025-07-09 10:35:10,348 basehttp 17496 24684 "POST /api/v1/login/ HTTP/1.1" 400 85
+INFO 2025-07-09 10:39:34,863 basehttp 17496 12616 "GET /admin/ HTTP/1.1" 200 9986
+INFO 2025-07-09 10:39:39,707 basehttp 17496 12616 "GET /admin/users/auditlog/ HTTP/1.1" 200 13682
+INFO 2025-07-09 10:39:39,725 basehttp 17496 31324 "GET /static/admin/js/core.js HTTP/1.1" 304 0
+INFO 2025-07-09 10:39:39,725 basehttp 17496 12616 "GET /static/admin/css/changelists.css HTTP/1.1" 304 0
+INFO 2025-07-09 10:39:39,728 basehttp 17496 14468 "GET /static/admin/js/jquery.init.js HTTP/1.1" 304 0
+INFO 2025-07-09 10:39:39,729 basehttp 17496 31324 "GET /static/admin/js/prepopulate.js HTTP/1.1" 304 0
+INFO 2025-07-09 10:39:39,729 basehttp 17496 31488 "GET /static/admin/js/admin/RelatedObjectLookups.js HTTP/1.1" 304 0
+INFO 2025-07-09 10:39:39,729 basehttp 17496 28596 "GET /static/admin/js/vendor/jquery/jquery.js HTTP/1.1" 304 0
+INFO 2025-07-09 10:39:39,729 basehttp 17496 12616 "GET /static/admin/js/actions.js HTTP/1.1" 304 0
+INFO 2025-07-09 10:39:39,730 basehttp 17496 10764 "GET /static/admin/js/urlify.js HTTP/1.1" 304 0
+INFO 2025-07-09 10:39:39,731 basehttp 17496 14468 "GET /static/admin/js/vendor/xregexp/xregexp.js HTTP/1.1" 304 0
+INFO 2025-07-09 10:39:39,732 basehttp 17496 10764 "GET /static/admin/img/search.svg HTTP/1.1" 304 0
+INFO 2025-07-09 10:39:39,736 basehttp 17496 10764 "GET /static/admin/js/filters.js HTTP/1.1" 304 0
+INFO 2025-07-09 10:39:39,748 basehttp 17496 10764 "GET /static/admin/img/sorting-icons.svg HTTP/1.1" 304 0
+WARNING 2025-07-09 10:40:49,467 log 17496 9016 Bad Request: /api/v1/login/
+WARNING 2025-07-09 10:40:49,468 basehttp 17496 9016 "POST /api/v1/login/ HTTP/1.1" 400 85
+INFO 2025-07-09 10:54:30,943 autoreload 17496 5548 C:\Users\soren\tradeprohub\backend\users\serializers.py changed, reloading.
+INFO 2025-07-09 10:54:31,966 autoreload 21588 26676 Watching for file changes with StatReloader
