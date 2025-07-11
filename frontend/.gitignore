@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Images
+*.jpg
+*.jpeg
+*.png

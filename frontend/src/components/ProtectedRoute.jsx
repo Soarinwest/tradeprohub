@@ -45,17 +45,20 @@ const ProtectedRoute = ({
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Refresh user data on mount to ensure we have latest info
+  const [hasRefreshed, setHasRefreshed] = useState(false);
+
   useEffect(() => {
     const refreshUserData = async () => {
-      if (isAuthenticated && !loading) {
+      if (isAuthenticated && !loading && !hasRefreshed) {
         setIsRefreshing(true);
         await refreshUser();
         setIsRefreshing(false);
+        setHasRefreshed(true);
       }
     };
 
     refreshUserData();
-  }, [isAuthenticated, loading, refreshUser]);
+  }, [isAuthenticated, loading, hasRefreshed]); 
 
   // Show loading state
   if (loading || isRefreshing) {
@@ -73,7 +76,7 @@ const ProtectedRoute = ({
       </div>
     );
   }
-  
+
   // Global redirect to profile wizard if profile is incomplete and not already there
   if (
     isAuthenticated &&

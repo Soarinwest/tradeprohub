@@ -158,30 +158,259 @@ export const authAPI = {
   updateProfile: (data) => api.put('/profile/', data),
 };
 
-// Business Profile API endpoints (keeping existing for compatibility)
+// Enhanced Business Profile API endpoints
 export const profileAPI = {
+  // Get user's business profile (try new endpoint first)
+  getProfile: async () => {
+    try {
+      return await api.get('/profiles/me/');
+    } catch (error) {
+      if (error.response?.status === 404) {
+        // Try the list endpoint as fallback
+        const response = await api.get('/profiles/');
+        if (Array.isArray(response.data) && response.data.length > 0) {
+          return { data: response.data[0] };
+        }
+        throw error;
+      }
+      throw error;
+    }
+  },
+  
   // Create business profile
   createProfile: (profileData) => api.post('/profiles/', profileData),
   
-  // Get user's business profile
-  getProfile: () => api.get('/profiles/me/'),
+  // Update business profile (try new endpoint first)
+  updateProfile: async (profileData, profileId = null) => {
+    try {
+      return await api.put('/profiles/me/', profileData);
+    } catch (error) {
+      if (profileId) {
+        // Fallback to ID-based endpoint
+        return await api.put(`/profiles/${profileId}/`, profileData);
+      }
+      throw error;
+    }
+  },
   
-  // Update business profile
-  updateProfile: (profileData) => api.put('/profiles/me/', profileData),
+  // Partial update
+  patchProfile: async (profileData, profileId = null) => {
+    try {
+      return await api.patch('/profiles/me/', profileData);
+    } catch (error) {
+      if (profileId) {
+        return await api.patch(`/profiles/${profileId}/`, profileData);
+      }
+      throw error;
+    }
+  },
   
   // Upload profile images
-  uploadImages: (formData) => api.post('/profiles/me/images/', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
+  uploadImages: (profileId, formData) => 
+    api.post(`/profiles/${profileId}/upload-images/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
   
   // Delete profile image
-  deleteImage: (imageId) => api.delete(`/profiles/me/images/${imageId}/`),
+  deleteImage: (profileId, imageId) => 
+    api.delete(`/profiles/${profileId}/images/${imageId}/`),
+  
+  // Get profile completion status
+  getCompletionStatus: (profileId) => 
+    api.get(`/profiles/${profileId}/completion-status/`),
   
   // Get all profiles (public)
   getProfiles: (params) => api.get('/profiles/', { params }),
   
   // Get specific profile by ID
   getProfileById: (id) => api.get(`/profiles/${id}/`),
+  
+  // Upload files with better error handling
+  uploadFile: async (profileId, field, file) => {
+    const formData = new FormData();
+    formData.append(field, file);
+    
+    try {
+      return await api.patch(`/profiles/${profileId}/`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+    } catch (error) {
+      throw apiUtils.handleError(error);
+    }
+  },
+  
+  // Bulk upload gallery images
+  uploadGalleryImages: async (profileId, images) => {
+    const formData = new FormData();
+    images.forEach(image => {
+      formData.append('images', image);
+    });
+    
+    try {
+      return await api.post(`/profiles/${profileId}/upload-images/`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+    } catch (error) {
+      throw apiUtils.handleError(error);
+    }
+  }
+};
+
+// Enhanced error handling for profiles
+export const profileUtils = {
+  // Transform backend profile data to frontend format
+  transformProfileFromBackend: (profile) => {
+    if (!profile) return null;
+    
+    return {
+      id: profile.id,
+      business: {
+        name: profile.business_name || '',
+        phone: profile.business_phone || '',
+        email: profile.business_email || '',
+        logo: profile.business_logo || null
+      },
+      address: {
+        address_line1: profile.address_line1 || '',
+        address_line2: profile.address_line2 || '',
+        city: profile.city || '',
+        state: profile.state || '',
+        zip_code: profile.zip_code || '',
+        latitude: profile.latitude || null,
+        longitude: profile.longitude || null
+      },
+      serviceArea: {
+        type: profile.service_area_type || 'radius',
+        radius: profile.service_radius || 25,
+        willing_to_travel_outside: profile.willing_to_travel_outside || false
+      },
+      pricing: {
+        mode: profile.pricing_mode || 'hourly',
+        hourly_rate: profile.hourly_rate || '',
+        minimum_charge: profile.minimum_charge || '',
+        quote_packages: profile.quote_packages || []
+      },
+      media: {
+        certifications: profile.certifications || '',
+        profile_photo: profile.profile_photo || null,
+        gallery_images: profile.gallery_images || []
+      },
+      availability: {
+        availability_schedule: profile.availability_schedule || {},
+        available_immediately: profile.available_immediately ?? true,
+        start_date: profile.start_date || ''
+      },
+      status: {
+        is_complete: profile.is_complete || false,
+        is_active: profile.is_active ?? true,
+        completion_percentage: profile.completion_percentage || 0
+      },
+      timestamps: {
+        created_at: profile.created_at,
+        updated_at: profile.updated_at
+      }
+    };
+  },
+  
+  // Transform frontend profile data to backend format
+  transformProfileToBackend: (profileData) => {
+    const payload = {
+      // Business information
+      business_name: profileData.business?.name || '',
+      business_phone: profileData.business?.phone || '',
+      business_email: profileData.business?.email || '',
+      
+      // Address information
+      address_line1: profileData.address?.address_line1 || '',
+      address_line2: profileData.address?.address_line2 || '',
+      city: profileData.address?.city || '',
+      state: profileData.address?.state || '',
+      zip_code: profileData.address?.zip_code || '',
+      latitude: profileData.address?.latitude ? parseFloat(profileData.address.latitude) : null,
+      longitude: profileData.address?.longitude ? parseFloat(profileData.address.longitude) : null,
+      
+      // Service area information
+      service_area_type: profileData.serviceArea?.type || 'radius',
+      service_radius: parseInt(profileData.serviceArea?.radius) || 25,
+      willing_to_travel_outside: profileData.serviceArea?.willing_to_travel_outside || false,
+      
+      // Pricing information
+      pricing_mode: profileData.pricing?.mode || 'hourly',
+      hourly_rate: profileData.pricing?.mode === 'hourly' && profileData.pricing?.hourly_rate
+        ? parseFloat(profileData.pricing.hourly_rate) 
+        : null,
+      minimum_charge: profileData.pricing?.minimum_charge 
+        ? parseFloat(profileData.pricing.minimum_charge) 
+        : null,
+      quote_packages: profileData.pricing?.quote_packages || [],
+      
+      // Media information
+      certifications: profileData.media?.certifications || '',
+      
+      // Availability information
+      availability_schedule: profileData.availability?.availability_schedule || {},
+      available_immediately: profileData.availability?.available_immediately ?? true,
+      start_date: profileData.availability?.start_date || null
+    };
+
+    // Remove null/undefined values
+    return Object.entries(payload).reduce((acc, [key, value]) => {
+      if (value !== null && value !== undefined && value !== '') {
+        acc[key] = value;
+      }
+      return acc;
+    }, {});
+  },
+  
+  // Validate profile data
+  validateProfile: (profileData) => {
+    const errors = {};
+    
+    // Business validation
+    if (!profileData.business?.name?.trim()) {
+      errors.business_name = 'Business name is required';
+    }
+    if (!profileData.business?.phone?.trim()) {
+      errors.business_phone = 'Business phone is required';
+    }
+    if (!profileData.business?.email?.trim()) {
+      errors.business_email = 'Business email is required';
+    }
+    
+    // Address validation
+    if (!profileData.address?.address_line1?.trim()) {
+      errors.address_line1 = 'Street address is required';
+    }
+    if (!profileData.address?.city?.trim()) {
+      errors.city = 'City is required';
+    }
+    if (!profileData.address?.state?.trim()) {
+      errors.state = 'State is required';
+    }
+    if (!profileData.address?.zip_code?.trim()) {
+      errors.zip_code = 'ZIP code is required';
+    }
+    
+    // Service area validation
+    if (profileData.serviceArea?.type === 'radius') {
+      if (!profileData.serviceArea?.radius || profileData.serviceArea.radius < 1) {
+        errors.service_radius = 'Service radius must be at least 1 mile';
+      }
+    }
+    
+    // Pricing validation
+    if (profileData.pricing?.mode === 'hourly') {
+      if (!profileData.pricing?.hourly_rate || parseFloat(profileData.pricing.hourly_rate) <= 0) {
+        errors.hourly_rate = 'Hourly rate is required for hourly pricing';
+      }
+    } else if (profileData.pricing?.mode === 'quoted') {
+      if (!profileData.pricing?.quote_packages || profileData.pricing.quote_packages.length === 0) {
+        errors.quote_packages = 'At least one quote package is required for quoted pricing';
+      }
+    }
+    
+    return errors;
+  }
 };
 
 // Utility functions
@@ -345,5 +574,6 @@ if (process.env.NODE_ENV === 'development') {
     }
   );
 }
+
 
 export default api;
